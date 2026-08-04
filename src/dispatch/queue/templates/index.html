@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Dispatch Queue{% endblock %}
+{% block content %}
+<nav class="filters">
+  <a class="filter {% if not status_filter %}active{% endif %}" href="{{ url_for('index') }}">All</a>
+  <a class="filter {% if status_filter == 'open' %}active{% endif %}" href="{{ url_for('index', status='open') }}">Open</a>
+  <a class="filter {% if status_filter == 'in_review' %}active{% endif %}" href="{{ url_for('index', status='in_review') }}">In review</a>
+  <a class="filter {% if status_filter == 'approved' %}active{% endif %}" href="{{ url_for('index', status='approved') }}">Approved</a>
+  <a class="filter {% if status_filter == 'rejected' %}active{% endif %}" href="{{ url_for('index', status='rejected') }}">Rejected</a>
+  <a class="filter {% if status_filter == 'resolved' %}active{% endif %}" href="{{ url_for('index', status='resolved') }}">Resolved</a>
+</nav>
+
+{% for priority in priorities %}
+<section class="priority-group priority-{{ priority }}">
+  <h2>{{ priority | capitalize }} ({{ grouped[priority] | length }})</h2>
+  {% if grouped[priority] %}
+  <ul class="queue-list">
+    {% for item in grouped[priority] %}
+    <li class="queue-item status-{{ item.status }}">
+      <a class="queue-item-link" href="{{ url_for('item_detail', queue_item_id=item.queue_item_id) }}">
+        <span class="subject">{{ item.subject }}</span>
+        <span class="meta">{{ item.type }} &middot; {{ item.status }} &middot; {{ item.source_worker }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty">Nothing here.</p>
+  {% endif %}
+</section>
+{% endfor %}
+{% endblock %}
