@@ -76,6 +76,28 @@ authority throughout this session) satisfies that. This entry records
 that the operative approval text is the chat instruction itself, dated
 2026-08-04, not a separate file this repository can point to.
 
+### Lane A merge approval — APPROVED, 2026-08-04
+
+Per Hard Approval Gate #7 (`DISPATCH_BASE_CONSTITUTION_v1`: "Approval is
+an affirmative act recorded in the decision queue. Silence, timeout, or
+absence is never consent."): Mike reviewed the Lane A human walkthrough
+(`docs/lanes/A/WALKTHROUGH_REPORT_v1.md` — register/retrieve/hash-verify
+plus a tamper-detection check, run against a throwaway sandbox) and
+approved it in the same message that also instructed the merge into
+`integration` ("yes go ahead and also merge"). This is the affirmative act
+`DISPATCH_BUILD_BLUEPRINT_v1` Part 5 gate 5 requires before any lane merge
+— the walkthrough report itself was evidence for this decision, not a
+substitute for it.
+
+Mike also instructed, in the same message, that all future lane
+walkthroughs (B, C, D) follow the same procedure Lane A used. That
+standing procedure is now recorded at
+`docs/reference/WALKTHROUGH_PROCEDURE_v1.md`.
+
+**Unblocked:** `build/librarian-spine` merges into `integration` — Lane A
+is Group 1's first merge, per `DISPATCH_BUILD_BLUEPRINT_v1` Part 4.5.
+
 ## Open
 
-(none — all four originally-held items are resolved as of 2026-08-04)
+(none — all four originally-held items, plus the Lane A merge approval
+above, are resolved as of 2026-08-04)

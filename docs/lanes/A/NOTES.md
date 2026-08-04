@@ -114,8 +114,19 @@ Per launch package §8's "must not" list and the Librarian constitution's
 
 ### Still outstanding before this lane can merge
 
-- **Mike's sandbox walkthrough** (register/retrieve/verify a real document)
-  per §7's Definition of Done — not something a build session can do on
-  its own behalf.
+- ~~**Mike's sandbox walkthrough**~~ — done. See
+  `docs/lanes/A/WALKTHROUGH_REPORT_v1.md`: register/retrieve/hash-verify
+  plus a tamper-detection check, run 2026-08-04. Mike approved and
+  instructed the merge in the same message; recorded in
+  `docs/decisions/DECISION_LOG.md` ("Lane A merge approval — APPROVED,
+  2026-08-04").
 - The IFTA rate-table gap noted in `library_seed/RateTables/README.md` is
   unrelated to Lane A's gate and not blocking here.
+
+## Session 2 (2026-08-04) — merge
+
+`build/librarian-spine` merged into `integration` following Mike's
+walkthrough sign-off (above). Standing procedure for future lane
+walkthroughs (B, C, D) is now written down at
+`docs/reference/WALKTHROUGH_PROCEDURE_v1.md`, per Mike's instruction to
+run every future walkthrough the same way Lane A's was run.

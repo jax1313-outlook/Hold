@@ -100,6 +100,19 @@ into `integration` still requires Mike's own affirmative approval, stated
 in writing, before it happens — this document is the evidence he'd be
 approving against, not a substitute for the approval itself.
 
+## Sign-off
+
+Mike approved this walkthrough and instructed the merge into `integration`
+in the same message ("yes go ahead and also merge"), 2026-08-04. Recorded
+per Hard Approval Gate #7 in `docs/decisions/DECISION_LOG.md` ("Lane A
+merge approval — APPROVED, 2026-08-04"). The merge was performed
+immediately after in this same session.
+
+Mike also instructed that all future lane walkthroughs (B, C, D) follow
+this same procedure. That standing procedure is now written down at
+`docs/reference/WALKTHROUGH_PROCEDURE_v1.md` so later, independent build
+sessions don't have to re-derive it.
+
 ---
 
 *End of LANE A WALKTHROUGH REPORT v1.*
