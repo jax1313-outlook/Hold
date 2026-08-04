@@ -1,0 +1,33 @@
+{
+  "blessed": false,
+  "constructed_by": "build_session",
+  "note": "Hand-computed by this build session against fixture rate data -- NOT a real IFTA quarter and not yet reviewed by Mike. Real per-jurisdiction rates are a separate, unresolved gap; see library_seed/RateTables/README.md. A green test against this file proves the worksheet engine's arithmetic matches the computation spec exactly, not that these numbers reflect any real quarter.",
+  "quarter": "2026-Q3",
+  "fuel_type": "diesel",
+  "rate_table_version": "fixture-v1",
+  "unit_number": "T-200",
+  "mileage": [
+    {"jurisdiction": "TX", "miles": 4000.0},
+    {"jurisdiction": "OK", "miles": 1500.0},
+    {"jurisdiction": "LA", "miles": 1000.0}
+  ],
+  "fuel": [
+    {"jurisdiction": "TX", "gallons_normalized": 600.0, "purchase_date": "2026-07-10"},
+    {"jurisdiction": "OK", "gallons_normalized": 250.0, "purchase_date": "2026-08-10"},
+    {"jurisdiction": "LA", "gallons_normalized": 150.0, "purchase_date": "2026-09-10"}
+  ],
+  "rates": [
+    {"jurisdiction": "TX", "rate": 0.20},
+    {"jurisdiction": "OK", "rate": 0.18},
+    {"jurisdiction": "LA", "rate": 0.16}
+  ],
+  "expected": {
+    "fleet_mpg": 6.5,
+    "total_net_tax": 0.2307692307692335,
+    "lines": [
+      {"jurisdiction": "TX", "taxable_gallons": 615.3846153846154, "net_tax": 3.07692307692308},
+      {"jurisdiction": "OK", "taxable_gallons": 230.76923076923077, "net_tax": -3.46153846153846},
+      {"jurisdiction": "LA", "taxable_gallons": 153.84615384615384, "net_tax": 0.6153846153846132}
+    ]
+  }
+}

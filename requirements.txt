@@ -3,3 +3,10 @@
 jsonschema>=4.20  # dev/test tooling only (Lane A)
 pytest>=8.0       # dev/test tooling only
 flask>=3.0        # Lane B's queue UI (and, later, Lane D's Reports UI)
+
+# Lane C's vision extractor (src/dispatch/receipt/extraction/vision.py)
+# lazily imports anthropic so its absence never breaks anything else in
+# this repository -- no automated test in this build calls it live (no
+# credentials exist in this environment). Uncomment when Mike supplies a
+# real API key and this lane's extraction is actually exercised live:
+# anthropic>=0.40

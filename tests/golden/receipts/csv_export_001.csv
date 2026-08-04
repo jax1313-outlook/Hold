@@ -1,0 +1,4 @@
+vendor_name,vendor_address,purchase_date,purchase_time,line_description,category,amount,tax_amount,currency,fuel_type,tractor_or_reefer,volume_as_received,volume_as_received_unit,unit_price,taxes_included,unit_number,driver,odometer,payment_method,card_last4,receipt_number
+Flying J Travel Center,"123 Main St, Amarillo, TX 79101",2026-07-15,14:30,Diesel fuel purchase,fuel,350.00,0,USD,diesel,tractor,87.5,gallons,4.00,true,T-104,J. Smith,145302,fuel_card,4321,RCT-001
+Truck Stop Diner,"456 Elm St, Joplin, MO 64801",2026-07-15,,Dinner,meals,18.50,1.20,USD,,,,,,,T-104,J. Smith,,cash,,
+TOTAL,,,,,,369.70,,,,,,,,,,,,,,
