@@ -1,0 +1,5 @@
+# Lane A (Librarian Evidence Spine) dependencies.
+# Stack per DISPATCH_BUILD_BLUEPRINT_v1 Part 3.1: Python 3.11+, SQLite (stdlib), no
+# cloud dependencies for storage or state. These two are local dev/test tooling only.
+jsonschema>=4.20
+pytest>=8.0
