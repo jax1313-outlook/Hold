@@ -20,6 +20,14 @@ Exception Dashboard (§8, split out from the Review Dashboard), and OCR
 Operational Validation Plan (§9). The Review Dashboard (§7) is expanded.
 Phase 4 language tightened to "recommendation packages only."
 
+**Amendment 3 (2026-08-04):** the `WorksheetEngine` preview-mode
+extension (§6.1, §12.5) approved in principle, subject to six explicit
+conditions (no database writes, no worksheet IDs, no audit status
+changes, no approval path activation, clearly labeled PREVIEW, cannot be
+mistaken for a filed worksheet). §6.1 specifies how each is satisfied by
+construction. This is design approval — the code change itself still
+requires its own launch package before it's written.
+
 ## 1. Executive Summary — IFTA Tool vs. IFTA Clerk
 
 **An IFTA Tool** moves Mike's existing clerical work from a terminal
@@ -229,6 +237,54 @@ live-estimate path stops being shown at all for that quarter. There is
 never a moment where both a live estimate and a real worksheet's numbers
 are on screen at once claiming to answer the same question.
 
+### 6.1 Preview Mode — approved in principle, 2026-08-04, with six conditions
+
+Approved as a future addition to `WorksheetEngine`, not built yet
+(§12.5's approval gate still applies to the actual code change — this
+section specifies *how* that future change satisfies each condition,
+not an implementation). Conditions taken verbatim; each mapped to a
+concrete design commitment:
+
+1. **No database writes.** `preview()` is constructed with only a
+   read-only connection — the same `ro_conn` (`readonly.open_read_only()`)
+   `WorksheetEngine` already uses for `fuel_records`/`mileage_records`
+   today, never the write connection at all. Not "chooses not to write" —
+   *has no write-capable connection in scope to write with*, the same
+   structural guarantee `readonly.py` already gives every other reader in
+   this system.
+2. **No worksheet IDs.** No `new_ulid()` call anywhere on this path. The
+   returned object has no `ifta_worksheet_id` field — not `None`, not a
+   placeholder string, simply absent, so nothing downstream can
+   accidentally treat it as a real row's key.
+3. **No audit status changes.** No call to `dispatch.common.audit.write_audit_entry()`
+   anywhere on this path. A preview computation is not a governed action
+   and produces no audit trail entry — silence here is correct, not a
+   gap, the same way viewing a report today writes no audit entry.
+4. **No approval path activation.** `preview()` never receives or
+   constructs a `QueueStore`. The five worksheet-scoped exception
+   detectors (§3, §8) get called *directly* against the preview's
+   in-memory result — the same pure-function pattern already used for
+   the five worksheet-free detectors — never through `run_all_detectors()`,
+   which is the only code that creates Queue items. No code path from
+   `preview()` can reach `submit_for_approval()` or `attempt_seal()`
+   either, since both require a real `ifta_worksheet_id` to look up a
+   persisted row (condition 2 already makes that impossible to supply).
+5. **Clearly labeled PREVIEW.** The returned shape carries an explicit
+   `"status": "preview"` — a value that never appears in the real
+   `ifta_worksheets.status` column (`draft` / `sealed` only, enforced by
+   existing schema) — so a preview result and a real row can never be
+   confused even if handled generically by the same display code.
+6. **Cannot be mistaken for a filed worksheet.** Follows directly from 2,
+   3, and 5 together: no ID a real worksheet could have, no audit trail a
+   real worksheet would have, and a status value no real worksheet can
+   ever carry. The Review Dashboard (§7) additionally renders it under
+   distinct language ("Current Estimate," never "Worksheet") wherever it
+   appears.
+
+This satisfies all six conditions by construction, not by convention —
+each is a structural property of what the function has access to and
+what shape it returns, not a rule the code merely promises to follow.
+
 ## 7. Review Dashboard
 
 One screen, one quarter (and, matching the worksheet engine's own
@@ -415,14 +471,14 @@ not decided unilaterally here.
 4. **`build/ifta-ui`'s fate** (§10): merge as a secondary override tool,
    merge but relabel its role in its own docs, or hold it unmerged
    pending the Clerk's first phase?
-5. **`WorksheetEngine` preview-mode extension** (§6): approve, in
-   principle, a small future change to `worksheet.py` adding a
-   non-persisting computation mode — needed to make live estimates and
-   Category 2 exception previews possible for the five worksheet-scoped
-   detectors, and needed before §7's "estimated tax position" panel can
-   show anything before a real worksheet exists. Not built without this
-   approval, per the same standard the Evidence Record v1.1 amendment
-   already set for touching frozen/already-merged lane code.
+5. ~~**`WorksheetEngine` preview-mode extension**~~ — **APPROVED IN
+   PRINCIPLE, 2026-08-04**, subject to six conditions (no database
+   writes, no worksheet IDs, no audit status changes, no approval path
+   activation, clearly labeled PREVIEW, cannot be mistaken for a filed
+   worksheet) — see §6.1 for how each is satisfied by construction. This
+   is approval of the *design*; the actual code change to `worksheet.py`
+   still goes through its own launch package, tests, and walkthrough
+   before merge, the same as every other piece of this system.
 6. **Who owns Stage 1-4 of §9** — obtaining and holding the real
    `ANTHROPIC_API_KEY`, and where the validation trial actually runs?
    Outside this repository's or this build session's control either way.
