@@ -73,8 +73,13 @@ so that specific gate is clear — no lane has been built yet, so no merge
 is currently pending regardless.
 
 On this repository host these are discipline rules recorded here as much
-as tooling rules: nothing but the five seed commits (S1–S5) touches `main`
-directly, ever, and no lane commits directly to `main` or `integration`.
+as tooling rules: while the repository is still pre-lane (no lane build
+session has opened), `main` may receive direct seed and decision-record
+commits — the five S1–S5 seed commits plus any later commit that updates
+approval/decision status without writing application code, like the
+2026-08-04 adoption of #2/#3/#4/#14. **Once Lane A's build begins, that
+window closes**: no lane ever commits directly to `main` or `integration`
+again; all lane work lands only through a validated `integration` merge.
 
 ## Seed provenance
 
