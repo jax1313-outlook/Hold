@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<section class="summary-cards">
+  <a class="card" href="/queue/">
+    <span class="value">{{ total_open }}</span>
+    <span class="label">Open queue item(s)</span>
+  </a>
+  <a class="card" href="{{ url_for('pilot_page') }}">
+    <span class="value">{{ inbox_count }}</span>
+    <span class="label">In Pilot Inbox</span>
+  </a>
+</section>
+
+<h2>Queue by priority</h2>
+<ul class="priority-list">
+  {% for p in priorities %}
+  <li class="priority-{{ p }}"><span class="count">{{ priority_counts[p] }}</span> {{ p }}</li>
+  {% endfor %}
+</ul>
+<p><a href="/queue/">Open the Queue &rarr;</a></p>
+
+<h2>DispatchPilot folders</h2>
+<ul class="folder-list">
+  {% for name, count in folder_counts.items() %}
+  <li>{{ name }}: {{ count }}</li>
+  {% endfor %}
+</ul>
+<p><a href="{{ url_for('pilot_page') }}">Open Pilot &rarr;</a></p>
+
+<h2>Recent reports</h2>
+{% if recents %}
+<ul class="recents-list">
+  {% for r in recents %}
+  <li>{{ r.report_type.replace('_', ' ')|title }} &middot; {{ r.period_label }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">Nothing saved yet.</p>
+{% endif %}
+<p><a href="/reports/">Open Reports &rarr;</a></p>
+
+{% endblock %}

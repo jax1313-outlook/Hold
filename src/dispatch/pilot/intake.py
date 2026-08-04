@@ -144,6 +144,14 @@ class PilotIntake:
     def folders(self) -> dict[str, Path]:
         return dict(self._folders)
 
+    def close(self) -> None:
+        """Closes the connection this instance opened in __init__. A
+        caller that constructs a PilotIntake per request (the shell app's
+        flask.g pattern -- same as every other lane's own per-request
+        connection lifetime) needs a public way to close it in
+        teardown_appcontext without reaching into a private attribute."""
+        self._conn.close()
+
     def process_inbox(self) -> dict[str, list]:
         summary: dict[str, list] = {
             "receipt_batch": [],
