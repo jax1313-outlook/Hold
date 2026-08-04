@@ -8,6 +8,12 @@ was actually asked for — an IFTA *Clerk* — and how Dispatch gets there
 without discarding what already exists or overbuilding what doesn't need
 to exist yet.
 
+**Amended 2026-08-04** (same day) to align with
+`docs/governance/OCR_VISION_EXTRACTION_DOCTRINE_v1.md`, approved after
+this blueprint's first draft: §4's workflow table is reordered and gains
+an explicit Validation Layer stage to match that doctrine's more precise
+architecture. No other section changed in substance.
+
 ## 1. Executive Summary — IFTA Tool vs. IFTA Clerk
 
 **An IFTA Tool** moves Mike's existing clerical work from a terminal
@@ -74,6 +80,9 @@ unexercised, and one piece is a genuine, unsolved gap.
   the code is already there — it is a credentials-and-verification task.
   Nothing in this blueprint can close that gap; it can only name it
   plainly rather than imply the Clerk already reads photographs today.
+  See `docs/governance/OCR_VISION_EXTRACTION_DOCTRINE_v1.md` for the
+  full architectural doctrine this system already follows for
+  extraction — verified, not just asserted, against the real pipeline.
 - **Router (Lane C).** Already creates real `FuelRecord`/`ExpenseRecord`
   rows automatically the moment extraction succeeds, CSV or vision alike
   — no new logic needed for "store extracted data automatically."
@@ -112,25 +121,33 @@ unexercised, and one piece is a genuine, unsolved gap.
 
 ## 4. The Target Workflow, Mapped Against What's Built
 
+Reordered and one stage added (Validation Layer) since this section was
+first drafted, to match `OCR_VISION_EXTRACTION_DOCTRINE_v1`'s more
+precise architecture: evidence is registered *before* extraction, not
+after, and validation is its own named stage between extraction and
+record creation — both already true of the real, built pipeline; this
+table just names them correctly now.
+
 | Stage | Status |
 |---|---|
-| 1. OCR / Intake | Intake surface built (DispatchPilot); vision extraction code built but unexercised (no live credential) |
-| 2. Evidence Spine | Built, proven, unchanged |
-| 3. Fuel + Expense extraction | Built (Router), unchanged |
-| 4. Mileage / jurisdiction accumulation | Fuel side built; **mileage input is an open gap** (§3, §9) |
-| 5. IFTA workspace | **Not built — needs definition** (§5) |
-| 6. Exception queue | Built (ten detectors + real Queue items), unchanged |
-| 7. Review dashboard | **Not built — needs new work**, but built substantially from existing reads (§6) |
-| 8. Mike approval | Built, proven live twice, unchanged |
-| 9. IFTA package | Built (`attempt_seal`'s bundle), unchanged |
-| 10. Archive | Built, unchanged |
-| 11. DocuSign / accounting handoff | **Explicitly future, explicitly out of scope now** (§8) |
+| 1. Evidence Spine (document arrives, hashed, audited, archived) | Built, proven, unchanged |
+| 2. OCR / Vision Extraction | Code built; **unexercised against a live credential** (§3) |
+| 3. Validation Layer | Built (`validators.py` — structural, sum, confidence, dedup), unchanged |
+| 4. Fuel + Expense record creation | Built (Router), unchanged |
+| 5. Mileage / jurisdiction accumulation | Fuel side built; **mileage input is an open gap** (§3, §9) |
+| 6. IFTA workspace | **Not built — needs definition** (§5) |
+| 7. Exception queue | Built (ten detectors + real Queue items), unchanged |
+| 8. Review dashboard | **Not built — needs new work**, but built substantially from existing reads (§6) |
+| 9. Mike approval | Built, proven live twice, unchanged |
+| 10. IFTA package | Built (`attempt_seal`'s bundle), unchanged |
+| 11. Archive | Built, unchanged |
+| 12. DocuSign / accounting handoff | **Explicitly future, explicitly out of scope now** (§8) |
 
-Six of eleven stages (2, 3, 6, 8, 9, 10) need no new work at all — built,
-proven, unchanged by this blueprint. One (1, intake/OCR) is built but
-unverified against a live credential. One (4, mileage) is a real, named
-gap this blueprint does not close. Two (5, 7 — workspace, dashboard) are
-where the actual new work is. One (11) is future and explicitly out of
+Seven of twelve stages (1, 3, 4, 7, 9, 10, 11) need no new work at all —
+built, proven, unchanged by this blueprint. One (2, OCR) is built but
+unverified against a live credential. One (5, mileage) is a real, named
+gap this blueprint does not close. Two (6, 8 — workspace, dashboard) are
+where the actual new work is. One (12) is future and explicitly out of
 scope now.
 
 ## 5. The "IFTA Workspace" — What It Should and Shouldn't Be
