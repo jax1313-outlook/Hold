@@ -1,0 +1,28 @@
+{
+  "report_type": "expense_summary",
+  "version": "1",
+  "title": "Expense Summary",
+  "big_number": {
+    "field": "total_amount",
+    "label": "Total Expenses",
+    "format": "currency"
+  },
+  "breakdown": {
+    "label": "By Category",
+    "rows_field": "breakdown",
+    "columns": [
+      { "field": "category", "label": "Category" },
+      { "field": "amount", "label": "Amount", "format": "currency" }
+    ]
+  },
+  "drilldown": {
+    "label": "Line items",
+    "rows_field": "line_items",
+    "columns": [
+      { "field": "purchase_date", "label": "Date" },
+      { "field": "vendor_name", "label": "Vendor" },
+      { "field": "line_description", "label": "Description" },
+      { "field": "amount", "label": "Amount", "format": "currency" }
+    ]
+  }
+}

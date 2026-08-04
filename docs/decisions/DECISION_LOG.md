@@ -130,7 +130,28 @@ for the decision, not a substitute for it.
 Group 1's third merge, per `DISPATCH_BUILD_BLUEPRINT_v1` Part 4.5 (after
 Lanes A and B).
 
+### Lane D merge approval — APPROVED, 2026-08-04
+
+Per Hard Approval Gate #7: Mike reviewed the Lane D human walkthrough
+(`docs/lanes/D/WALKTHROUGH_REPORT_v1.md` — a real fuel purchase through
+Lane C's intake pipeline and a real IFTA worksheet via `WorksheetEngine`,
+then "fuel today" answered in one glance, IFTA Position reading the
+stored worksheet exactly, a save-for-print round trip with the archive
+copy independently confirmed on disk, a malformed-CSV quarantine, a
+no-worksheet "no data" page, and a direct raw-SQL `DELETE` against
+`print_queue` rejected by the trigger itself, all run against the real
+Flask dev server per `docs/reference/WALKTHROUGH_PROCEDURE_v1.md`) and,
+when asked whether he was satisfied and wanted it merged, replied "yes,
+go ahead and merge" — a direct, affirmative instruction responding to
+that specific question, not silence or a timeout. This is the
+affirmative act gate 5 requires; the walkthrough report was evidence for
+the decision, not a substitute for it.
+
+**Unblocked:** `build/reports` merges into `integration` — Lane D is
+Group 1's fourth and last merge, per `DISPATCH_BUILD_BLUEPRINT_v1` Part
+4.5 (after Lanes A, B, and C).
+
 ## Open
 
-(none — all four originally-held items, plus the Lane A and Lane B merge
-approvals above, are resolved as of 2026-08-04)
+(none — all four originally-held items, plus the Lane A, Lane B, Lane C,
+and Lane D merge approvals above, are resolved as of 2026-08-04)

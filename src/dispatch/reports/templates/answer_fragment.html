@@ -1,0 +1,44 @@
+<div class="answer">
+  <h2>{{ view.title }}</h2>
+  {% if view.estimate_label %}<p class="estimate-label">{{ view.estimate_label }}</p>{% endif %}
+
+  {% if view.big_number %}
+  <div class="big-number">
+    <span class="value">{{ view.big_number.value }}</span>
+    <span class="label">{{ view.big_number.label }}</span>
+  </div>
+  {% endif %}
+
+  {% if view.secondary %}
+  <div class="secondary">
+    <span class="value">{{ view.secondary.value }}</span>
+    <span class="label">{{ view.secondary.label }}</span>
+  </div>
+  {% endif %}
+
+  {% if filters_desc %}
+  <p class="filters">
+    {% for key, value in filters_desc.items() %}<span>{{ key }}: {{ value }}</span>{% if not loop.last %} &middot; {% endif %}{% endfor %}
+  </p>
+  {% endif %}
+
+  <p class="period">{{ period_label }}</p>
+
+  {% if view.breakdown %}
+  <h3>{{ view.breakdown.label }}</h3>
+  <table class="breakdown">
+    <thead>
+      <tr>{% for header in view.breakdown.headers %}<th>{{ header }}</th>{% endfor %}</tr>
+    </thead>
+    <tbody>
+      {% for row in view.breakdown.rows %}
+      <tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">No data for this period.</p>
+  {% endif %}
+
+  <p class="freshness">As of {{ as_of }} &middot; {{ pending_review_count }} item(s) pending review &middot; template v{{ template_version }}</p>
+</div>

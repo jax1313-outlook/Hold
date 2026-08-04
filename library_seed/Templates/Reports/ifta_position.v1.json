@@ -1,0 +1,27 @@
+{
+  "report_type": "ifta_position",
+  "version": "1",
+  "title": "IFTA Position",
+  "estimate_label": "Prepared — estimate, not filed",
+  "big_number": {
+    "field": "total_net_tax",
+    "label": "Estimated Net Tax",
+    "format": "currency"
+  },
+  "secondary": {
+    "field": "exception_count",
+    "label": "Exceptions",
+    "format": "number"
+  },
+  "breakdown": {
+    "label": "By Jurisdiction",
+    "rows_field": "lines",
+    "columns": [
+      { "field": "jurisdiction", "label": "State" },
+      { "field": "fuel_type", "label": "Fuel" },
+      { "field": "miles", "label": "Miles", "format": "number" },
+      { "field": "taxable_gallons", "label": "Taxable Gal", "format": "number" },
+      { "field": "net_tax", "label": "Net Tax", "format": "currency" }
+    ]
+  }
+}
