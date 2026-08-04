@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ item.subject }}{% endblock %}
+{% block content %}
+<a class="back" href="{{ url_for('index') }}">&larr; Back to queue</a>
+
+<h2>{{ item.subject }}</h2>
+<dl class="item-meta">
+  <dt>Type</dt><dd>{{ item.type }}</dd>
+  <dt>Priority</dt><dd>{{ item.priority }}</dd>
+  <dt>Status</dt><dd>{{ item.status }}</dd>
+  <dt>Source</dt><dd>{{ item.source_worker }}</dd>
+  <dt>Created</dt><dd>{{ item.created_at }}</dd>
+  {% if item.decided_by %}
+  <dt>Decided by</dt><dd>{{ item.decided_by }} at {{ item.decided_at }}</dd>
+  {% endif %}
+  {% if item.decision_note %}
+  <dt>Note</dt><dd>{{ item.decision_note }}</dd>
+  {% endif %}
+</dl>
+
+{% if previews %}
+<h3>Evidence</h3>
+<ul class="evidence-list">
+  {% for preview in previews %}
+  <li>
+    {% if preview.status == "ok" %}
+    <strong>{{ preview.record.document_type }}</strong> &mdash;
+    {{ preview.record.vendor or "unknown vendor" }}, {{ preview.record.document_date }}
+    &mdash; hash verified.
+    {% elif preview.status == "integrity_failed" %}
+    <strong class="warn">Evidence integrity check failed for {{ preview.ref }} — see exception queue.</strong>
+    {% else %}
+    <span class="muted">No evidence record found for {{ preview.ref }}.</span>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if item.status in ("open", "in_review") %}
+  {% if item.status == "open" %}
+  <form method="post" action="{{ url_for('start_review', queue_item_id=item.queue_item_id) }}">
+    <button class="btn btn-review" type="submit">Start review</button>
+  </form>
+  {% endif %}
+
+  <form class="decision-form" method="post" action="{{ url_for('approve', queue_item_id=item.queue_item_id) }}">
+    <label>Decided by <input type="text" name="decided_by" required></label>
+    <label>Note (optional) <textarea name="decision_note"></textarea></label>
+    <button class="btn btn-approve" type="submit">Approve</button>
+  </form>
+
+  <form class="decision-form" method="post" action="{{ url_for('reject', queue_item_id=item.queue_item_id) }}">
+    <label>Decided by <input type="text" name="decided_by" required></label>
+    <label>Note (optional) <textarea name="decision_note"></textarea></label>
+    <button class="btn btn-reject" type="submit">Reject</button>
+  </form>
+
+  <form class="decision-form" method="post" action="{{ url_for('resolve', queue_item_id=item.queue_item_id) }}">
+    <label>Decided by <input type="text" name="decided_by" required></label>
+    <label>Note (optional) <textarea name="decision_note"></textarea></label>
+    <button class="btn btn-resolve" type="submit">Resolve</button>
+  </form>
+{% else %}
+<p class="decided">This item was decided on {{ item.decided_at }} and cannot be changed.</p>
+{% endif %}
+{% endblock %}
