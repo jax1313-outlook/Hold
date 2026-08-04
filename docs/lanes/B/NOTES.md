@@ -105,6 +105,12 @@ three closed doors:
   `docs/lanes/B/WALKTHROUGH_REPORT_v1.md`: approve one item, reject one
   item, plus a bonus check that an already-decided item refuses a second
   decision (400, no change) — run against the real Flask dev server, not
-  the test client, per `docs/reference/WALKTHROUGH_PROCEDURE_v1.md`. Sign-off
-  and merge decision are Mike's next step, not something a build session
-  supplies on its own behalf.
+  the test client, per `docs/reference/WALKTHROUGH_PROCEDURE_v1.md`. Mike
+  approved and instructed the merge; recorded in
+  `docs/decisions/DECISION_LOG.md` ("Lane B merge approval — APPROVED,
+  2026-08-04").
+
+## Session 2 (2026-08-04) — merge
+
+`build/manager-queue` merged into `integration` following Mike's
+walkthrough sign-off (above).

@@ -97,7 +97,23 @@ standing procedure is now recorded at
 **Unblocked:** `build/librarian-spine` merges into `integration` — Lane A
 is Group 1's first merge, per `DISPATCH_BUILD_BLUEPRINT_v1` Part 4.5.
 
+### Lane B merge approval — APPROVED, 2026-08-04
+
+Per Hard Approval Gate #7: Mike reviewed the Lane B human walkthrough
+(`docs/lanes/B/WALKTHROUGH_REPORT_v1.md` — approve one item, reject one
+item, plus a bonus check that an already-decided item refuses a second
+decision, run against the real Flask dev server per
+`docs/reference/WALKTHROUGH_PROCEDURE_v1.md`) and, when asked whether he
+was satisfied and wanted it merged, replied "merge" — a direct,
+affirmative instruction responding to that specific question, not silence
+or a timeout. This is the affirmative act gate 5 requires; the walkthrough
+report was evidence for the decision, not a substitute for it.
+
+**Unblocked:** `build/manager-queue` merges into `integration` — Lane B is
+Group 1's second merge, per `DISPATCH_BUILD_BLUEPRINT_v1` Part 4.5
+(after Lane A).
+
 ## Open
 
-(none — all four originally-held items, plus the Lane A merge approval
-above, are resolved as of 2026-08-04)
+(none — all four originally-held items, plus the Lane A and Lane B merge
+approvals above, are resolved as of 2026-08-04)
