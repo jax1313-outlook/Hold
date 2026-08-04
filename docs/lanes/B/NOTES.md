@@ -101,6 +101,10 @@ three closed doors:
 
 ### Still outstanding before this lane can merge
 
-- **Mike's sandbox walkthrough** (approve one item, reject one item), run
-  per `docs/reference/WALKTHROUGH_PROCEDURE_v1.md` — not something a
-  build session can do on its own behalf.
+- ~~**Mike's sandbox walkthrough**~~ — done. See
+  `docs/lanes/B/WALKTHROUGH_REPORT_v1.md`: approve one item, reject one
+  item, plus a bonus check that an already-decided item refuses a second
+  decision (400, no change) — run against the real Flask dev server, not
+  the test client, per `docs/reference/WALKTHROUGH_PROCEDURE_v1.md`. Sign-off
+  and merge decision are Mike's next step, not something a build session
+  supplies on its own behalf.
