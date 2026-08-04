@@ -5,14 +5,15 @@ Updated only by Mike Zachary's decisions. Source:
 `DISPATCH_MATRIX_EXECUTION_PACKAGE_v1` "APPROVAL STATUS THIS PACKAGE
 RESPECTS" (approval status of 2026-08-03), cross-referenced against
 `DISPATCH_BUILD_BLUEPRINT_v1` Part 2.2 for the seven worker boundary
-clauses' exact identities.
+clauses' exact identities, updated 2026-08-04 for the resolution of
+#2/#3/#4/#14.
 
 | # | Title | Status | Date | Source |
 |---|---|---|---|---|
 | 1 | Storage mapping | APPROVED | 2026-08-03 | Blueprint 1.1 |
-| 2 | Dual-record fuel (D1 cross-link field) | **HELD** | 2026-08-03 | Blueprint 1.2 Decision D1 (drafted, not adopted) |
-| 3 | Closed expense vocabulary | **HELD** | 2026-08-03 | Blueprint 1.5 (drafted, not adopted) |
-| 4 | Hard approval gates | **HELD** | 2026-08-03 | Blueprint 2.1 (drafted, not adopted) |
+| 2 | Dual-record fuel (D1 cross-link field) | **APPROVED** | 2026-08-04 | Blueprint 1.2 Decision D1 |
+| 3 | Closed expense vocabulary | **APPROVED AS WRITTEN** | 2026-08-04 | Blueprint 1.5 |
+| 4 | Hard approval gates | **APPROVED AS WRITTEN** | 2026-08-04 | Blueprint 2.1 |
 | 5 | Failure doctrine | APPROVED | 2026-08-03 | Blueprint 2.1 |
 | 6 | Deletion / retention doctrine | APPROVED | 2026-08-03 | Blueprint 2.1 |
 | 7 | Worker boundary clause — Manager | APPROVED | 2026-08-03 | Blueprint 2.2 item 1 |
@@ -22,18 +23,12 @@ clauses' exact identities.
 | 11 | Worker boundary clause — Dispatch Ops | APPROVED | 2026-08-03 | Blueprint 2.2 item 5 |
 | 12 | Worker boundary clause — Receipt Agent | APPROVED | 2026-08-03 | Blueprint 2.2 item 6 |
 | 13 | Worker boundary clause — IFTA Agent | APPROVED | 2026-08-03 | Blueprint 2.2 item 7 |
-| 14 | Trade Memory doctrine | **HELD** | 2026-08-03 | Blueprint 2.3 (drafted, not adopted) |
+| 14 | Trade Memory doctrine | **APPROVED** | 2026-08-04 | Blueprint 2.3 |
 
-Note on #2, #3, #4, #14: the blueprint itself marks their draft text
-`[MIKE APPROVES]`, and its own Part 0 header defines that tag as "drafted
-for his sign-off, not yet law." The Execution Package's approval status
-(dated the same day) is the actual decision record and lists these four
-as HELD. This register follows the Execution Package.
-
-Items #8, #9, #11 (Intelligence, Publisher, Dispatch Ops) are not built
-in Matrix Group 1 and have no lane, but their boundary clauses are
-approved doctrine regardless — approval of a clause and commissioning of
-a worker are separate acts.
+**All 14 items are now APPROVED.** No open holds remain as of 2026-08-04.
+See `docs/decisions/DECISION_LOG.md` for the resolution record of
+#2/#3/#4/#14, including a provenance note on how that approval was
+communicated in this session.
 
 **In force (not numbered approval items, but settled per the Execution
 Package and confirmed verbatim in the blueprint):** queue item contract
@@ -41,9 +36,17 @@ Package and confirmed verbatim in the blueprint):** queue item contract
 and MileageRecord schemas (1.2), IFTA computation spec 3.5. See
 `contracts/CONTRACT_REGISTER.md`.
 
-**Consequences (from the Execution Package, still in force):**
-FuelRecord/ExpenseRecord schemas are NOT frozen (cross-link field and
-category validation pend #2/#3); the Lane C router is BLOCKED; Trade
-Memory is EXCLUDED from all packets; the Base Constitution hard-gate
-amendment is a document milestone pending #4 (blocks the first merge into
-`integration`, not lane builds).
+## What approval unblocks vs. what is still unbuilt
+
+Approval resolves *documentation and contract* status — it does not
+itself write code. As of 2026-08-04:
+
+- All nine data contracts are FROZEN (`contracts/CONTRACT_REGISTER.md`).
+- `DISPATCH_BASE_CONSTITUTION_v1.md`'s Hard Approval Gates section and
+  `MEMORY_DOCTRINE_v1.md`'s Trade Memory section are filled and adopted.
+- The Lane C router, FuelRecord/ExpenseRecord table creation, category
+  validation logic, and any Trade Memory component remain **unbuilt**.
+  No lane build session (A, B, C, or D) has been opened. This register
+  records legal/decision status, not build status — see
+  `docs/lanes/*/NOTES.md` for build status, which stays "nothing yet —
+  seed only" until a lane session actually runs.

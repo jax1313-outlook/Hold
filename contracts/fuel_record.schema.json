@@ -1,15 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "contracts/fuel_record.DRAFT.json",
+  "$id": "contracts/fuel_record.schema.json",
   "title": "FuelRecord",
-  "status": "DRAFT — HELD",
-  "hold_number": 2,
-  "status_note": "Field list verbatim from DISPATCH_BUILD_BLUEPRINT_v1 Part 1.2. The blueprint itself marks Decision D1 (dual-record fuel) 'ADOPTED [MIKE APPROVES]', but its own header defines [MIKE APPROVES] as 'drafted for his sign-off, not yet law.' The later, dated approval record (DISPATCH_MATRIX_EXECUTION_PACKAGE_v1 / docs/decisions/DECISION_LOG.md) lists #2 as HELD as of 2026-08-03. This file follows the Decision Log: NOT frozen. No fuel_records table may be created and no FuelRecord may be written while this file carries DRAFT status.",
+  "status": "FROZEN v1.0",
+  "status_note": "Field list verbatim from DISPATCH_BUILD_BLUEPRINT_v1 Part 1.2. Frozen 2026-08-04 on approval of #2 (dual-record fuel, Decision D1). Formerly contracts/fuel_record.DRAFT.json — renamed on freeze; see docs/decisions/DECISION_LOG.md.",
   "type": "object",
   "properties": {
     "fuel_record_id": { "type": "string", "description": "ULID. Primary key." },
     "evidence_record_id": { "type": "string" },
-    "expense_record_id": { "type": "string", "description": "OPEN — the D1 cross-link. The blueprint drafts this as required; that requirement IS decision #2, not yet adopted. Do not build against this field until Mike decides." },
+    "expense_record_id": { "type": "string", "description": "The D1 cross-link. Decision D1 (dual-record fuel) is ADOPTED: a propulsion-fuel line item emits BOTH a FuelRecord and an ExpenseRecord (category fuel), cross-linked, sharing one EvidenceRecord parent." },
     "purchase_date": { "type": "string", "format": "date" },
     "purchase_time": { "type": ["string", "null"], "format": "time" },
     "vendor_name": { "type": "string" },
@@ -37,5 +36,5 @@
   },
   "required": ["fuel_record_id", "evidence_record_id", "expense_record_id", "purchase_date", "vendor_name", "vendor_address", "jurisdiction", "fuel_type", "tractor_or_reefer", "volume_as_received", "volume_as_received_unit", "gallons_normalized", "unit_price", "total_amount", "currency", "taxes_included", "unit_number", "dedup_key", "extraction_confidence", "review_status", "schema_version"],
   "additionalProperties": false,
-  "routing_note": "Reefer-flagged fuel emits an ExpenseRecord only (category reefer_fuel), no FuelRecord — per blueprint 1.2 D1. DEF is never a FuelRecord under any circumstance."
+  "routing_note": "Reefer-flagged fuel emits an ExpenseRecord only (category reefer_fuel), no FuelRecord. DEF is never a FuelRecord under any circumstance. Router that actually implements this routing is Lane C build work, not yet written."
 }

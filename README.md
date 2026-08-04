@@ -41,9 +41,12 @@ Mike Zachary cuts over after merge 5.
 2. A session builds only inside its Allowed Files (see its packet in
    `docs/reference/`). Touching another lane's directories is a failed
    gate, even if the change is correct.
-3. If work cannot proceed without a HELD decision (#2, #3, #4, #14), the
-   session stops that thread, records the blockage in `NOTES.md`, and
-   continues other in-scope work. It never assumes the decision.
+3. If work cannot proceed without a decision still on hold, the session
+   stops that thread, records the blockage in `NOTES.md`, and continues
+   other in-scope work. It never assumes the decision. (As of 2026-08-04
+   all fourteen approval items are resolved — see
+   `docs/decisions/DECISION_LOG.md` — so this rule currently has no live
+   application, but stays in force for any future hold.)
 4. Sandbox config only (`config/sandbox.config.json`); the config loader
    must refuse production roots in sandbox mode; no session ever creates a
    production config.
@@ -58,15 +61,16 @@ main
  └── integration
       ├── build/librarian-spine   (Lane A — merges first)
       ├── build/manager-queue     (Lane B — merges after A)
-      ├── build/receipt-ifta      (Lane C — merges after B; may itself wait on #2/#3)
+      ├── build/receipt-ifta      (Lane C — merges after B)
       └── build/reports           (Lane D — merges last)
 ```
 
 `main` accepts merges only from `integration`. `integration` accepts merges
 only lane-by-lane, in that order, each after its six validation gates and
-Mike's sign-off. The first merge into `integration` additionally waits on
-#4 (Base Constitution hard-gate amendment — a document milestone, see
-`docs/governance/DISPATCH_BASE_CONSTITUTION_v1.md`).
+Mike's sign-off. The first merge into `integration` was gated on #4 (Base
+Constitution hard-gate amendment); #4 was approved as written 2026-08-04,
+so that specific gate is clear — no lane has been built yet, so no merge
+is currently pending regardless.
 
 On this repository host these are discipline rules recorded here as much
 as tooling rules: nothing but the five seed commits (S1–S5) touches `main`
@@ -89,24 +93,30 @@ content the blueprint explicitly marks as an approved numbered item (see
 `docs/governance/APPROVAL_REGISTER.md`). Nothing is asserted as frozen or
 adopted without that sourcing.
 
-**One deliberate exception to the blueprint's own language:** the
-blueprint's Part 1.2 marks Decision D1 (dual-record fuel) "ADOPTED [MIKE
-APPROVES]" and Part 1.5 marks the expense vocabulary
-"[MIKE APPROVES — he may add/remove before freeze]." The blueprint's own
-header defines `[MIKE APPROVES]` as "drafted for his sign-off, not yet
-law." The later, dated approval record
-(`DISPATCH_MATRIX_EXECUTION_PACKAGE_v1`'s approval status of 2026-08-03,
-carried into `docs/decisions/DECISION_LOG.md`) lists these as items **#2**
-and **#3**, both HELD. This repository follows the Decision Log, not the
-blueprint's internal draft language: `fuel_record.DRAFT.json`,
-`expense_record.DRAFT.json`, and `expense_vocabulary.HOLD.md` all carry
-DRAFT/HELD status, not FROZEN, even though their field-level content is
-fully known. The same logic applies to items **#4** (hard approval gates)
-and **#14** (Trade Memory) — their draft text exists in full in
-`DISPATCH_BUILD_BLUEPRINT_v1` Parts 2.1 and 2.3, but the corresponding
-sections of `docs/governance/DISPATCH_BASE_CONSTITUTION_v1.md` and
-`MEMORY_DOCTRINE_v1.md` stay reserved and empty, pointing at the draft
-location rather than adopting it.
+**Resolved history:** the blueprint's Part 1.2 marked Decision D1
+(dual-record fuel) "ADOPTED [MIKE APPROVES]" and Part 1.5 marked the
+expense vocabulary "[MIKE APPROVES — he may add/remove before freeze]" —
+drafted, not yet law, per the blueprint's own header. Between 2026-08-03
+and 2026-08-04 this repository correctly followed the dated Decision Log
+rather than the blueprint's internal draft language: items **#2**, **#3**,
+**#4**, and **#14** sat HELD while their draft text (fully known) waited
+in reserved, unadopted sections. **On 2026-08-04, Mike approved all four**
+(#2 and #14 as drafted; #3 and #4 explicitly "as written") via direct
+instruction in this session — see `docs/decisions/DECISION_LOG.md` for
+the full record and its provenance note. All contracts and governance
+sections are now updated to reflect that: `fuel_record.schema.json`,
+`expense_record.schema.json`, and `expense_vocabulary.schema.json` are
+FROZEN (formerly the `.DRAFT.json`/`.HOLD.md` files, which no longer
+exist); the Hard Approval Gates and Trade Memory sections of
+`DISPATCH_BASE_CONSTITUTION_v1.md` and `MEMORY_DOCTRINE_v1.md` are filled
+and adopted.
+
+**Approval is not implementation.** All fourteen items being approved
+authorizes future build work; it does not itself constitute that work.
+No lane session (A, B, C, or D) has been opened, no application code
+exists in this repository, and no production Dispatch system was
+touched by this update — see `docs/lanes/*/NOTES.md`, all of which still
+read "nothing yet — seed only."
 
 **Audits are advisory, not law.** The seven pre-coding audits each carry
 "Authority: Advisory only. Mike Zachary is final authority" in their own

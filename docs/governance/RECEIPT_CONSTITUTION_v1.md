@@ -1,7 +1,6 @@
 # RECEIPT_CONSTITUTION_v1
 
-**Status:** Adopted (boundary clause) + partially adopted (buildable
-workflow scope). Operates under `CONSTITUTION.md` and
+**Status:** Fully adopted. Operates under `CONSTITUTION.md` and
 `DISPATCH_BASE_CONSTITUTION_v1.md`. Required before Lane C.
 
 ## Authority
@@ -41,13 +40,14 @@ records. Three supports make it safe, all required in Lane C:
    purchase arriving as a pump receipt AND a fuel-card statement line
    double-produces Fuel Records and corrupts the IFTA return.
 
-## Routing table
+## Routing table (fully adopted — #2 and #3 approved 2026-08-04)
 
-Per `DISPATCH_RECEIPT_WORKFLOW_AUDIT_v1` Section 6:
+Per `DISPATCH_RECEIPT_WORKFLOW_AUDIT_v1` Section 6 and Decision D1
+(`DISPATCH_BUILD_BLUEPRINT_v1` Part 1.2):
 
 | Line item | Record(s) emitted | Destination(s) |
 |---|---|---|
-| Diesel / gasoline (propulsion) | FuelRecord + ExpenseRecord (`fuel`), cross-linked — **HELD, see below** | IFTA Agent AND Accounting Queue |
+| Diesel / gasoline (propulsion) | FuelRecord + ExpenseRecord (`fuel`), cross-linked | IFTA Agent AND Accounting Queue |
 | Reefer fuel (flagged) | ExpenseRecord (`reefer_fuel`) only | Accounting Queue; never IFTA propulsion gallons |
 | DEF | ExpenseRecord (`def`) | Accounting Queue only — never IFTA, under any circumstance |
 | Meals | ExpenseRecord (`meals`; driver + date attached; no deductibility judgment) | Accounting Queue only |
@@ -56,18 +56,28 @@ Per `DISPATCH_RECEIPT_WORKFLOW_AUDIT_v1` Section 6:
 | Every document, regardless of content | EvidenceRecord | Archive (immutable) + Library index |
 | Ambiguous line | quarantined line → human review queue | rest of document routes normally |
 
-## Explicit HELD markers — do not build these
+Categories are validated against `contracts/expense_vocabulary.schema.json`
+(FROZEN v1.0, approved AS WRITTEN 2026-08-04).
 
-- **#2 (dual-record fuel).** The router that actually emits FuelRecord +
-  ExpenseRecord and writes those tables is BLOCKED. Extraction terminates
-  in a `pending_routing` state: validated, classified line items with
-  full provenance, awaiting the router. This is by design, not a gap.
-- **#3 (closed expense vocabulary).** Category validation against a
-  frozen list is BLOCKED — the list itself is not frozen. See
-  `contracts/expense_vocabulary.HOLD.md`.
-- **#14 (Trade Memory).** No pattern storage, no pattern reliance,
-  anywhere. Every unknown format goes to the review queue; human rulings
-  accumulate in the audit trail and can seed patterns later.
+## Formerly-HELD items — now resolved in doctrine; still unbuilt (Lane C's job)
+
+As of 2026-08-04, none of #2, #3, or #14 are held. This constitution now
+fully authorizes:
+
+- **The router** — code converting `pending_routing` items into real
+  FuelRecord/ExpenseRecord rows per the routing table above. **Not yet
+  built.** No lane session has run.
+- **`fuel_records` / `expense_records` table creation** against the now-
+  frozen schemas. **Not yet built.**
+- **Category validation** against the frozen vocabulary. **Not yet
+  built.**
+- **Trade Memory** for the Receipt Agent, per the adopted doctrine in
+  `MEMORY_DOCTRINE_v1.md`. **Not yet built.**
+
+This section previously listed these as explicit HELD markers a build
+session must not cross. They are retained here, reframed, so a future
+Lane C session knows the doctrine is settled and the only remaining gap
+is implementation.
 
 ## Exception list (Receipt Agent must detect — `DISPATCH_RECEIPT_WORKFLOW_AUDIT_v1` Section 5)
 

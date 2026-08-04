@@ -1,22 +1,22 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "contracts/expense_record.DRAFT.json",
+  "$id": "contracts/expense_record.schema.json",
   "title": "ExpenseRecord",
-  "status": "DRAFT — HELD",
-  "hold_number": "2, 3",
-  "status_note": "Field list verbatim from DISPATCH_BUILD_BLUEPRINT_v1 Part 1.2. Held on #2 (fuel_record_id cross-link) and #3 (category enum) per docs/decisions/DECISION_LOG.md. No expense_records table may be created and no ExpenseRecord may be written while this file carries DRAFT status.",
+  "status": "FROZEN v1.0",
+  "status_note": "Field list verbatim from DISPATCH_BUILD_BLUEPRINT_v1 Part 1.2. Frozen 2026-08-04 on approval of #2 (cross-link) and #3 (closed vocabulary, as written). Formerly contracts/expense_record.DRAFT.json — renamed on freeze; see docs/decisions/DECISION_LOG.md.",
   "type": "object",
   "properties": {
     "expense_record_id": { "type": "string", "description": "ULID." },
     "evidence_record_id": { "type": "string" },
-    "fuel_record_id": { "type": ["string", "null"], "description": "OPEN — set when D1 twin. Same open question as fuel_record.DRAFT.json's expense_record_id." },
+    "fuel_record_id": { "type": ["string", "null"], "description": "Set when D1 twin (propulsion fuel line)." },
     "purchase_date": { "type": "string", "format": "date" },
     "vendor_name": { "type": "string" },
     "vendor_location": { "type": ["string", "null"] },
     "line_description": { "type": "string", "description": "Verbatim from document." },
     "category": {
       "type": "string",
-      "description": "OPEN — enum values are decision #3. See contracts/expense_vocabulary.HOLD.md for the blueprint's draft candidate list (Part 1.5) — NOT frozen, NOT embeddable in code. Validation must reject any value outside the eventually-frozen list; the Receipt Agent never extends it."
+      "enum": ["fuel", "reefer_fuel", "def", "meals", "oil_additives", "parts_maintenance", "truck_wash", "parking", "tolls", "scale_tickets", "permits_fees", "supplies", "misc"],
+      "description": "Closed vocabulary v1, approved AS WRITTEN 2026-08-04 (#3). See library_seed/Vocabulary/expense_vocabulary.v1.json for the canonical Library copy. Validation rejects anything outside this list; the Receipt Agent never extends it."
     },
     "amount": { "type": "number" },
     "tax_amount": { "type": ["number", "null"] },

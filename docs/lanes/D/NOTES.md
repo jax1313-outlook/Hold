@@ -16,8 +16,10 @@ entries — append.
 
 ## Deliberately Not Built
 
-(nothing yet — Expense Summary template/filter/fixtures are blocked on #3
-by design; see Packet D)
+(nothing yet — no lane session has run. Expense Summary
+template/filter/fixtures were blocked on #3; #3 was approved as written
+2026-08-04, see `docs/decisions/DECISION_LOG.md` — Expense Summary is
+now authorized but still unbuilt, same as the rest of Lane D.)
 
 ## Deferred gate
 

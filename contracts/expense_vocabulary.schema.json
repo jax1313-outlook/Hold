@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/expense_vocabulary.schema.json",
+  "title": "ExpenseVocabulary",
+  "status": "FROZEN v1.0",
+  "status_note": "Approved AS WRITTEN 2026-08-04 (#3). Verbatim from DISPATCH_BUILD_BLUEPRINT_v1 Part 1.5. Formerly contracts/expense_vocabulary.HOLD.md (marker only) — replaced on freeze; see docs/decisions/DECISION_LOG.md. This is the contract copy (read-only law). The installed Library data file lanes actually read at runtime is library_seed/Vocabulary/expense_vocabulary.v1.json — same list, kept in sync.",
+  "type": "array",
+  "items": { "type": "string" },
+  "const": ["fuel", "reefer_fuel", "def", "meals", "oil_additives", "parts_maintenance", "truck_wash", "parking", "tolls", "scale_tickets", "permits_fees", "supplies", "misc"],
+  "rule": "Closed list. No worker may extend it. An unclassifiable line quarantines to the review queue; the rest of the document routes normally. Changes only by Mike's decision + version bump + same-day notice."
+}

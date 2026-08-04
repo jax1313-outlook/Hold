@@ -1,10 +1,9 @@
 # REPORTS_CHARTER_v1
 
-**Status:** Adopted (bright lines) + partially adopted (v1 report scope,
-provisional on fixture fidelity gate at integration). Reports is a layer,
-not an agent — it has a one-page charter, not a constitution. Operates
-under `CONSTITUTION.md` and `DISPATCH_BASE_CONSTITUTION_v1.md`. Required
-before Lane D.
+**Status:** Fully adopted (bright lines, and now Expense Summary is
+authorized). Reports is a layer, not an agent — it has a one-page
+charter, not a constitution. Operates under `CONSTITUTION.md` and
+`DISPATCH_BASE_CONSTITUTION_v1.md`. Required before Lane D.
 
 ## The two bright lines
 
@@ -41,9 +40,8 @@ authority.
 A report = a versioned JSON template (query definition + layout) loaded
 from `LIBRARY\Templates\Reports\`, Librarian custody. Rendering = template
 version + as-of timestamp + data. Identical inputs must produce identical
-bytes, always. This is also why adding a report type later (e.g. Expense
-Summary, once #3 lands) should be a template file + fixture, not a code
-change — build the engine so that holds.
+bytes, always. This is also why adding a report type is a template file +
+fixture, not a code change — the engine must be built so that holds.
 
 ## v1 scope (Lane D)
 
@@ -58,14 +56,17 @@ Big-number visual answer, comparison line, below-the-fold breakdown,
 freshness line with pending-review count. Save For Printing → immediate
 immutable HTML snapshot + print-queue reference; print stylesheet.
 
-**Explicitly NOT in Group 1 (HELD on #3):** the Expense Summary template,
-its Category filter, and its fixtures — the closed vocabulary defines
-both.
+**Expense Summary — unblocked, 2026-08-04 (#3 approved as written):** the
+category filter and fixtures may now be built against the frozen
+`contracts/expense_vocabulary.schema.json`. If the template engine was
+built so a new report type is a template file + fixture, this should
+require zero code change to the engine itself. **Not yet built** — no
+Lane D session has run.
 
-**Fuel fixture note (re: #2):** fixtures use only the in-force FuelRecord
-draft fields (`purchase_date`, `jurisdiction`, `gallons_normalized`,
-`total_amount`, `unit_number`); no fixture may presuppose or exclude the
-D1 cross-link.
+**Fuel fixture note (D1, resolved):** the D1 cross-link (#2, approved) is
+now a real, frozen field (`expense_record_id` on FuelRecord). Fuel
+fixtures built going forward may include it; it is no longer an open
+question to hedge against.
 
 ## Deferred gate
 

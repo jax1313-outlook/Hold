@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "status": "FROZEN v1.0",
+  "approved": "2026-08-04",
+  "approval_item": "#3, AS WRITTEN",
+  "source": "DISPATCH_BUILD_BLUEPRINT_v1 Part 1.5",
+  "categories": ["fuel", "reefer_fuel", "def", "meals", "oil_additives", "parts_maintenance", "truck_wash", "parking", "tolls", "scale_tickets", "permits_fees", "supplies", "misc"],
+  "rule": "Closed list. No worker may extend it. An unclassifiable line quarantines to the review queue; the rest of the document routes normally.",
+  "canonical_contract": "contracts/expense_vocabulary.schema.json"
+}

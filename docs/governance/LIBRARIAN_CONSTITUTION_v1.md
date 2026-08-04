@@ -1,7 +1,6 @@
 # LIBRARIAN_CONSTITUTION_v1
 
-**Status:** Adopted (boundary clause) + partially adopted (Evidence Spine
-workflow). Operates under `CONSTITUTION.md` and
+**Status:** Fully adopted. Operates under `CONSTITUTION.md` and
 `DISPATCH_BASE_CONSTITUTION_v1.md`. Required before Lane A.
 
 ## Authority
@@ -56,11 +55,14 @@ archives; it does not destroy. Only Mike destroys, and never inside a
 statutory retention window (IFTA evidence: 4 years minimum, the default
 retention class on all financial evidence).
 
-## Trade Memory custody (recommended, not yet formally adopted — #14 HELD)
+## Trade Memory custody (#14 — APPROVED 2026-08-04)
 
-`DISPATCH_MEMORY_AUDIT_v1` Q3 recommends the Librarian does not own or
+Per `MEMORY_DOCTRINE_v1.md`'s adopted Trade Memory section
+(`DISPATCH_BUILD_BLUEPRINT_v1` Part 2.3): the Librarian does not own or
 edit any worker's Trade Memory (it belongs to the worker's function) but
-must be able to inspect it and operate the Trade → Company promotion
-path. This is recommendation, not adopted law — #14 is open. No Trade
-Memory component exists in Lane A or anywhere in Group 1 while #14 is
-held; nothing here authorizes building one.
+must be able to inspect it and operates the Trade → Company promotion
+path (worker proposes → Librarian routes → Mike approves → enters
+Library). This role is now adopted doctrine, not merely recommended. No
+Trade Memory component exists in Lane A or anywhere in Group 1 yet —
+adoption of the doctrine is not the same as building it; nothing here
+authorizes writing that code in this session.

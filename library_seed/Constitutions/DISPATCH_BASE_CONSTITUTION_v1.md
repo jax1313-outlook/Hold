@@ -1,8 +1,8 @@
 # DISPATCH_BASE_CONSTITUTION_v1
 
-**Status:** Partially adopted. Operates under `CONSTITUTION.md` (Level 1
-Transport Inc. master constitution), whose Article 0 controls in any
-conflict. This document does not compete with, replace, or sit above
+**Status:** Fully adopted as of 2026-08-04. Operates under `CONSTITUTION.md`
+(Level 1 Transport Inc. master constitution), whose Article 0 controls in
+any conflict. This document does not compete with, replace, or sit above
 `CONSTITUTION.md` — it is the Dispatch-project-scoped constitution the
 Hold Seed Package requires before Lane A opens.
 
@@ -39,6 +39,36 @@ from `dispatch.config.json` (`contracts/config.schema.json`). No
 component ever hardcodes a root. A component must refuse to start if
 `environment` is `sandbox` but any root resolves under a production path.
 
+## #4 — Hard Approval Gates (APPROVED AS WRITTEN, 2026-08-04)
+
+Verbatim, `DISPATCH_BUILD_BLUEPRINT_v1` Part 2.1. No worker constitution
+may weaken any of these seven gates:
+
+1. No government filing or submission of any kind without explicit human
+   approval.
+2. No write to any accounting system (QuickBooks or successor) without
+   explicit human approval.
+3. No externally binding communication — rate acceptance, load booking or
+   cancellation, contract terms, signatures, or any "accept" action —
+   without explicit human approval. Informational communication (status,
+   ETA, check calls, transmission of already-approved documents) is not
+   gated.
+4. No demotion, deletion, or in-place modification of promoted truth in
+   the Library. Change is by supersession only, through the Librarian,
+   with human approval.
+5. No amendment to any constitution except by Mike Zachary, with a
+   version increment.
+6. No creation, modification, or retirement of any worker or helper
+   layer except by Mike Zachary.
+7. Approval is an affirmative act recorded in the decision queue.
+   Silence, timeout, or absence is never consent.
+
+Approved via direct instruction in this session, 2026-08-04. Per the
+Execution Package's Hold Re-Entry Protocol, #4's approval clears the
+first merge into `integration` (validation gate 6, docs-match-as-built)
+— though no lane build has occurred yet, so no merge is currently
+pending.
+
 ## #5 — Failure Doctrine (APPROVED, 2026-08-03)
 
 Verbatim, `DISPATCH_BUILD_BLUEPRINT_v1` Part 2.1:
@@ -65,20 +95,9 @@ allowed only on whitelisted status/review fields via views). No update,
 no delete code path exists on archived files, `evidence_records`, or
 `audit_log`, period.
 
-## HARD APPROVAL GATES — HELD (#4), reserved, adoption pending
+## Amendment history
 
-This section is intentionally empty. #4 (hard approval gates) is an open
-hold — see `docs/decisions/DECISION_LOG.md`. Its absence here is not an
-oversight and must not be read as either approval or rejection.
-
-**Draft text exists** and can be reviewed at
-`docs/reference/DISPATCH_BUILD_BLUEPRINT_v1.md` Part 2.1 ("HARD APPROVAL
-GATES") — seven numbered gates covering government filings, accounting
-writes, binding external communications, Library truth demotion,
-constitution amendments, worker commissioning, and silence-is-never-
-consent. That text is drafted for Mike's sign-off; it is not adopted by
-being drafted, and is not copied into this section until Mike says so.
-
-On approval: this section is filled with the adopted text, the document
-version is stamped, and the first merge into `integration` is cleared
-(validation gate 6, docs-match-as-built) per the Hold Re-Entry Protocol.
+- 2026-08-03: Seeded partially adopted (#1, #5, #6). Hard Approval Gates
+  section reserved and empty pending #4.
+- 2026-08-04: #4 approved as written. Hard Approval Gates section filled.
+  Document now fully adopted.

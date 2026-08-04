@@ -1,9 +1,8 @@
 # IFTA_CONSTITUTION_v1
 
-**Status:** Adopted (boundary clause) + adopted (computation spec 3.5, in
-force) + partially adopted (buildable workflow scope, provisional pending
-#2). Operates under `CONSTITUTION.md` and `DISPATCH_BASE_CONSTITUTION_v1.md`.
-Required before Lane C.
+**Status:** Fully adopted (boundary clause, computation spec, and now the
+fuel input adapter). Operates under `CONSTITUTION.md` and
+`DISPATCH_BASE_CONSTITUTION_v1.md`. Required before Lane C.
 
 ## Authority
 
@@ -40,13 +39,13 @@ version it used. Worksheet is DRAFT until a human approves it through the
 queue; approval seals the bundle (worksheet + records + evidence refs) to
 `ARCHIVE\IFTA\<quarter>\`.
 
-**Provisional pending #2:** this engine consumes FuelRecord fields
-(`jurisdiction`, `gallons_normalized`, `tractor_or_reefer`,
-`purchase_date`, `evidence_record_id`). Those fields are stable in the
-draft schema regardless of how #2's cross-link question resolves, so
-Lane C may build the engine now against golden-fixture fuel data — but
-the fuel input adapter is marked PROVISIONAL until `fuel_record.DRAFT.json`
-freezes.
+**Fuel input adapter — no longer provisional (#2 approved 2026-08-04):**
+this engine consumes FuelRecord fields (`jurisdiction`,
+`gallons_normalized`, `tractor_or_reefer`, `purchase_date`,
+`evidence_record_id`). `contracts/fuel_record.schema.json` is now FROZEN
+v1.0, not draft. The engine may be built against the real schema; golden
+fixture data may still be used for testing, but the schema itself is no
+longer provisional.
 
 ## Exception list (10 types — `DISPATCH_RECEIPT_WORKFLOW_AUDIT_v1` Section 5)
 
@@ -76,8 +75,12 @@ Per `DISPATCH_MATRIX_EXECUTION_PACKAGE_v1` Packet C and
 `source=manual_worksheet`); the worksheet engine per 3.5 above; all ten
 exception detectors; the quarterly package builder with DRAFT status and
 seal-on-approval via the queue interface. Golden set: one hand-computed
-quarter the agent must reproduce exactly.
+quarter the agent must reproduce exactly (still needs real rate data —
+see `library_seed/RateTables/README.md`).
 
-**Explicitly NOT in Group 1:** filing, paying, or any correspondence with
-a tax authority (permanent boundary, not a hold); the live QuickBooks
+**Not yet built:** none of this has been implemented. Doctrine is fully
+settled; no lane session has run.
+
+**Explicitly NOT in Group 1 (permanent boundary, not a hold):** filing,
+paying, or any correspondence with a tax authority; the live QuickBooks
 connector; monthly IFTA views (quarterly is the legal rhythm).
