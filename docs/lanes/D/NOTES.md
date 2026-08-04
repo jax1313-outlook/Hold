@@ -104,12 +104,27 @@ entries — append.
   response time, and query volume through this lane doesn't currently
   justify one.
 
-## Deferred gate
+## Deferred gate — CLOSED 2026-08-04
 
-Final report fidelity gate (validation gate 6) is explicitly deferred to
+Final report fidelity gate (validation gate 6) was deferred to
 `integration`, to be re-run against real Lane C data before merge 5. Not
-skipped — this session's fixtures already run through Lane A's/Lane C's
-real code (see `tests/fixtures/README.md`), which substantially de-risks
-this gate, but the data itself is still synthetic (not Mike's actual
-receipts), so the gate stays open here until it's re-checked on
-`integration` with real accumulated data.
+skipped — this session's fixtures already ran through Lane A's/Lane C's
+real code (see `tests/fixtures/README.md`), which substantially de-risked
+this gate, but the data itself was still synthetic (not Mike's actual
+receipts), so it stayed open until re-checked on `integration`.
+
+Per Mike's instruction after the merge, it was run: a 3-jurisdiction
+(TX/MO/OK), 2-fuel-type, 6-category dataset was built through the real
+`process_drop()` intake pipeline and a real `WorksheetEngine.build()` on
+`integration` @ `44493fe`, and every value the three report types display
+was independently recomputed — for IFTA, all the way back to raw
+`mileage_records`/`fuel_records` per computation spec 3.5, not just
+compared against the stored worksheet. 33/33 checks passed; full detail
+in `docs/lanes/D/FIDELITY_GATE_REPORT_v1.md`. The strongest of those
+checks (IFTA's independent spec-3.5 re-derivation, plus the
+multi-jurisdiction fuel/expense breakdown fidelity) is now a permanent
+regression, `tests/lane_d/test_fidelity_gate.py` — 302 tests green across
+the repo with it included. Data used for this gate was still
+sandbox-built (not Mike's actual receipts, which don't exist in this
+repository), consistent with every other lane's walkthrough; nothing
+about this gate required or used real production data.
