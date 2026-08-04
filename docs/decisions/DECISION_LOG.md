@@ -151,7 +151,23 @@ the decision, not a substitute for it.
 Group 1's fourth and last merge, per `DISPATCH_BUILD_BLUEPRINT_v1` Part
 4.5 (after Lanes A, B, and C).
 
+### Lane D deferred fidelity gate — CLOSED, 2026-08-04
+
+Per Mike's direct instruction ("Run the deferred fidelity gate against
+integration's real data"), `REPORTS_CHARTER_v1.md`'s deferred gate — every
+displayed total equals independent SQL arithmetic, re-run against real
+Lane C output on `integration` — was run against `integration` @
+`44493fe`. A 3-jurisdiction/2-fuel-type/6-category dataset was built
+through the real intake pipeline and `WorksheetEngine`; 33/33 independent
+checks passed, including IFTA's fleet_mpg/net_tax re-derived from raw
+tables per computation spec 3.5, not just compared to the stored
+worksheet. Full detail: `docs/lanes/D/FIDELITY_GATE_REPORT_v1.md`. The
+strongest checks are now a permanent regression
+(`tests/lane_d/test_fidelity_gate.py`). This closes the last open item
+from Lane D's launch package and merge.
+
 ## Open
 
-(none — all four originally-held items, plus the Lane A, Lane B, Lane C,
-and Lane D merge approvals above, are resolved as of 2026-08-04)
+(none — all four originally-held items, the Lane A, Lane B, Lane C, and
+Lane D merge approvals, and the Lane D deferred fidelity gate above, are
+resolved as of 2026-08-04)
