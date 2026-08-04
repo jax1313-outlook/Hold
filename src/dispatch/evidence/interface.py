@@ -35,11 +35,21 @@ VALID_DOCUMENT_TYPES = frozenset(
         "invoice",
         "csv_export",
         "email_attachment",
+        # Added in contract v1.1 (2026-08-04, Evidence First Doctrine —
+        # see docs/decisions/DECISION_LOG.md): a document's evidence status
+        # never depends on whether this system yet knows how to process
+        # it. "unclassified" is the honest label for a real dropped file
+        # that doesn't match any known type — never a guess at one of the
+        # others.
+        "rate_confirmation",
+        "proof_of_delivery",
+        "eld_export",
+        "unclassified",
     }
 )
 
 DEFAULT_RETENTION_CLASS = "ifta_4yr"
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 
 ACTOR_NAME = "librarian"
 ACTOR_VERSION = "1.0.0"

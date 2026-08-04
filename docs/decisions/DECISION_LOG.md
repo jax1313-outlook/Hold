@@ -166,8 +166,50 @@ strongest checks are now a permanent regression
 (`tests/lane_d/test_fidelity_gate.py`). This closes the last open item
 from Lane D's launch package and merge.
 
+### Evidence Record contract amendment (v1.0 -> v1.1) — APPROVED, 2026-08-04
+
+While designing the DispatchPilot input workflow (six-folder manual-drop
+pilot: `Inbox, Fuel, Receipts, RateCons, POD, ELD, Misc`), the build
+session found that `evidence_record.schema.json`'s `document_type` enum
+had no value for a rate confirmation, a proof of delivery, or ELD export
+data — those document types can't be registered as governed evidence at
+all today. Two resolutions were proposed: (1) extend the enum
+additively, so every document type gets the same real, hash-verified,
+audited evidence-registration path; or (2) give unrecognized types a
+separate, lower-trust logging path outside the Evidence Spine. Mike
+approved option 1 explicitly, and explicitly rejected option 2 in the
+same message: "Do NOT create a secondary evidence path. Do NOT create a
+reduced-trust evidence path. Do NOT bypass the Evidence Spine. The
+Evidence Spine remains the single governed evidence system."
+
+**Evidence First Doctrine, adopted as of this decision:** if a document
+is a legitimate business artifact, it belongs in the Evidence Spine.
+Processing capability does not determine whether something is evidence —
+a fuel receipt, a rate confirmation, a proof of delivery, an ELD export,
+an invoice, a maintenance record, and a compliance record are all
+evidence, whether or not this system yet knows how to extract or route
+what's inside them. Not being able to process a document's contents yet
+is never a reason to register it any less rigorously than one this
+system already understands.
+
+**Amendment, additive only:** `document_type` gains `rate_confirmation`,
+`proof_of_delivery`, `eld_export`, and `unclassified` (the honest label
+for a real file that matches none of the known types — never a guess at
+one of the others). No existing value renamed, removed, or reinterpreted;
+no other field changed. Contract bumped `FROZEN v1.0` → `FROZEN v1.1`;
+`src/dispatch/evidence/interface.py`'s `VALID_DOCUMENT_TYPES` and
+`SCHEMA_VERSION` updated to match in the same change, per
+`contracts/CONTRACT_REGISTER.md`'s rule that a frozen contract changes
+"only by Mike's decision, a version bump, and same-day notice to every
+open lane." No lane branch was open at the time (Group 1 fully merged
+into `integration` already), so there was no open lane to notify.
+
+**Unblocked:** the DispatchPilot input workflow may register every
+document type it needs (Fuel, Receipts, RateCons, POD, ELD, Misc) through
+the single, real `EvidenceSpine.register()` — no secondary path.
+
 ## Open
 
 (none — all four originally-held items, the Lane A, Lane B, Lane C, and
-Lane D merge approvals, and the Lane D deferred fidelity gate above, are
-resolved as of 2026-08-04)
+Lane D merge approvals, the Lane D deferred fidelity gate, and the
+Evidence Record v1.1 amendment above, are resolved as of 2026-08-04)

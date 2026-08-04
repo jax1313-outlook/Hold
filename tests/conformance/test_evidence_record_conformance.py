@@ -54,3 +54,50 @@ def test_schema_rejects_additional_properties(spine, sample_file, sample_metadat
     record["unexpected_field"] = "not part of the contract"
     with pytest.raises(jsonschema.ValidationError):
         assert_conforms(record)
+
+
+# --- v1.1 amendment (2026-08-04, Evidence First Doctrine): document_type
+# gained rate_confirmation, proof_of_delivery, eld_export, unclassified.
+# Additive only -- both the new values and every pre-existing value must
+# keep working, registered through the same real EvidenceSpine.register(),
+# no secondary path.
+
+NEW_DOCUMENT_TYPES = ("rate_confirmation", "proof_of_delivery", "eld_export", "unclassified")
+PRE_EXISTING_DOCUMENT_TYPES = (
+    "pump_receipt", "fuel_card_statement", "credit_card_statement",
+    "invoice", "csv_export", "email_attachment",
+)
+
+
+@pytest.mark.parametrize("document_type", NEW_DOCUMENT_TYPES)
+def test_register_conforms_for_each_new_v1_1_document_type(spine, sample_file, sample_metadata, document_type):
+    record = spine.register(sample_file, document_type, sample_metadata)
+    assert_conforms(record)
+    assert record["document_type"] == document_type
+    assert record["schema_version"] == "1.1"
+
+
+@pytest.mark.parametrize("document_type", PRE_EXISTING_DOCUMENT_TYPES)
+def test_register_still_conforms_for_every_pre_existing_document_type(spine, sample_file, sample_metadata, document_type):
+    """The amendment is additive -- none of the six original values were
+    renamed, removed, or reinterpreted."""
+    record = spine.register(sample_file, document_type, sample_metadata)
+    assert_conforms(record)
+    assert record["document_type"] == document_type
+
+
+def test_schema_still_rejects_a_type_outside_the_now_ten_value_enum():
+    incomplete_but_otherwise_shaped = {
+        "evidence_record_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "archive_path": "Evidence\\2026\\08\\x.pdf",
+        "file_hash": "a" * 64,
+        "document_type": "made_up_type_not_in_the_enum",
+        "document_date": "2026-08-04",
+        "capture_date": "2026-08-04T00:00:00Z",
+        "derived_record_ids": [],
+        "extraction_status": "complete",
+        "retention_class": "ifta_4yr",
+        "schema_version": "1.1",
+    }
+    with pytest.raises(jsonschema.ValidationError):
+        assert_conforms(incomplete_but_otherwise_shaped)
