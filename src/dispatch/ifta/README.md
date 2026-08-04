@@ -29,6 +29,28 @@ jurisdiction with activity but no matching rate raises `MissingRateError`
 rather than defaulting to anything. The worksheet is created `draft` and
 records exactly which `rate_table_version` it used.
 
+### Preview Mode — a live estimate, never persisted
+
+```python
+from dispatch.ifta.worksheet import preview
+
+read_only_conn = open_read_only(config["database"])
+estimate = preview(read_only_conn, quarter="2026-Q2", fuel_type="diesel", rate_table_version="fixture-v1")
+```
+
+`preview()` runs the same computation spec 3.5 arithmetic `build()` does,
+against real current data, and returns it — but never writes anything.
+It's a module-level function, not a method, and takes only a read-only
+connection: there is no write-capable connection anywhere in its scope to
+write with. The returned dict carries `"status": "preview"` and
+`"is_preview": True`, and has no `ifta_worksheet_id`, `created_at`,
+`sealed_at`, or `queue_item_id` — nothing a caller could mistake for a
+real, filed worksheet or feed into `submit_for_approval()`/`attempt_seal()`.
+Calling it never creates a queue item and never changes anything in
+`ifta_worksheets`/`ifta_worksheet_lines`, no matter how many times it's
+called. See `docs/ifta-clerk/WORKSHEET_PREVIEW_MODE_NOTES_v1.md` for the
+full approval history and test coverage.
+
 ## Source-immutability
 
 "The IFTA Agent cannot alter a fuel or mileage record to balance a
