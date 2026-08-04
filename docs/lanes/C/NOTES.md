@@ -127,6 +127,12 @@ Per launch package §8 and the Librarian/Receipt/IFTA constitutions'
 
 ### Still outstanding before this lane can merge
 
-- **Mike's sandbox walkthrough**, run per
-  `docs/reference/WALKTHROUGH_PROCEDURE_v1.md` — not something a build
-  session can do on its own behalf.
+- ~~**Mike's sandbox walkthrough**~~ — done. See
+  `docs/lanes/C/WALKTHROUGH_REPORT_v1.md`: two documents dropped (one
+  clean, one malformed) exercising register/extract/route and
+  register/quarantine both; a live reefer-safety refusal check; mileage
+  entered via the tool; a draft IFTA worksheet built from fixture rates;
+  all ten exception detectors run (correctly flagging an implausible
+  single-data-point fleet MPG); submit → approve → seal, with the sealed
+  bundle confirmed on disk. Sign-off and merge decision are Mike's next
+  step, not something a build session supplies on its own behalf.
