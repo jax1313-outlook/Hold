@@ -72,40 +72,52 @@ On this repository host these are discipline rules recorded here as much
 as tooling rules: nothing but the five seed commits (S1–S5) touches `main`
 directly, ever, and no lane commits directly to `main` or `integration`.
 
-## Seed transparency notice — read before trusting anything under `contracts/` or `docs/governance/`
+## Seed provenance
 
-`DISPATCH_HOLD_SEED_PACKAGE_v1` assumes several source documents are
-available to the seeding session: `DISPATCH_BUILD_BLUEPRINT_v1`, seven
-prior audit documents (including `DISPATCH_RECEIPT_WORKFLOW_AUDIT_v1`),
-`DISPATCH_HOLD_IMPACT_AND_BRIEFS_v1`, and
-`DISPATCH_REPORTS_DESIGN_REVIEW_v1`.
+All eleven source documents `DISPATCH_MATRIX_EXECUTION_PACKAGE_v1` and
+`DISPATCH_HOLD_SEED_PACKAGE_v1` assume or reference —
+`DISPATCH_BUILD_BLUEPRINT_v1`, the seven pre-coding audits (architecture,
+boundaries, memory, receipt workflow, Reports design, build matrix, final
+review), and `DISPATCH_HOLD_IMPACT_AND_BRIEFS_v1` — were provided to this
+seeding session and are copied in full under `docs/reference/`. See
+`docs/reference/README.md` for the complete index.
 
-**Only `DISPATCH_MATRIX_EXECUTION_PACKAGE_v1` and
-`DISPATCH_HOLD_SEED_PACKAGE_v1` were actually provided to this seeding
-session.** Those two documents describe *that* contracts and doctrine
-clauses exist and are approved/held, but do not carry their full
-field-level or clause-level text.
+Every contract marked `FROZEN v1.0` in `contracts/` and every adopted
+section in `docs/governance/` is sourced directly from
+`DISPATCH_BUILD_BLUEPRINT_v1` (field-level schemas, Part 1) or from
+content the blueprint explicitly marks as an approved numbered item (see
+`docs/governance/APPROVAL_REGISTER.md`). Nothing is asserted as frozen or
+adopted without that sourcing.
 
-Per `CONSTITUTION.md` Rule 11 (No Fabrication — "Unknown means Unknown"),
-this seed does **not** invent that missing text. Every file in
-`contracts/` and `docs/governance/` that depends on content from a
-document not provided says so explicitly in a `STATUS` / `status` field
-instead of guessing:
+**One deliberate exception to the blueprint's own language:** the
+blueprint's Part 1.2 marks Decision D1 (dual-record fuel) "ADOPTED [MIKE
+APPROVES]" and Part 1.5 marks the expense vocabulary
+"[MIKE APPROVES — he may add/remove before freeze]." The blueprint's own
+header defines `[MIKE APPROVES]` as "drafted for his sign-off, not yet
+law." The later, dated approval record
+(`DISPATCH_MATRIX_EXECUTION_PACKAGE_v1`'s approval status of 2026-08-03,
+carried into `docs/decisions/DECISION_LOG.md`) lists these as items **#2**
+and **#3**, both HELD. This repository follows the Decision Log, not the
+blueprint's internal draft language: `fuel_record.DRAFT.json`,
+`expense_record.DRAFT.json`, and `expense_vocabulary.HOLD.md` all carry
+DRAFT/HELD status, not FROZEN, even though their field-level content is
+fully known. The same logic applies to items **#4** (hard approval gates)
+and **#14** (Trade Memory) — their draft text exists in full in
+`DISPATCH_BUILD_BLUEPRINT_v1` Parts 2.1 and 2.3, but the corresponding
+sections of `docs/governance/DISPATCH_BASE_CONSTITUTION_v1.md` and
+`MEMORY_DOCTRINE_v1.md` stay reserved and empty, pointing at the draft
+location rather than adopting it.
 
-- No contract in this repository is marked `FROZEN` unless its field-level
-  content was actually sourced from a provided document. Marking
-  fabricated content `FROZEN v1.0` would itself be a fabrication, and
-  would hand later lane sessions false law to build against.
-- Governance documents that the seed package expects to be fully drafted
-  (e.g. `LIBRARIAN_CONSTITUTION_v1.md`) instead carry an authority block,
-  the doctrine numbers known to be approved, and everything actually
-  stated about them in the two provided documents — with a `PENDING
-  SOURCE` marker on anything else.
+**Audits are advisory, not law.** The seven pre-coding audits each carry
+"Authority: Advisory only. Mike Zachary is final authority" in their own
+headers. Rich, well-formed recommendations in those audits (the full
+Company/Trade Memory lifecycle, freeze/journeyman-exam mechanics, the
+storage read/write matrix, backup doctrine) are recorded where relevant
+as explicitly-labeled **recommendations awaiting adoption**, not treated
+as settled contracts, even where no other information contradicts them.
+Only `DISPATCH_MATRIX_EXECUTION_PACKAGE_v1`'s approval status and
+`DISPATCH_BUILD_BLUEPRINT_v1`'s Part-1 contract fields carry adopted
+weight.
 
-This is a deliberate, flagged deviation from the seed package's literal
-S2/S3 instructions. See `docs/reference/README.md` for the full list of
-missing source documents, and `docs/decisions/DECISION_LOG.md` /
-`contracts/CONTRACT_REGISTER.md` for exactly what is and is not settled.
-**No lane session should treat a `PENDING SOURCE` file as ready to build
-against — that gap must close (Mike supplies the real text) before that
-lane opens for real, per the seed completion test.**
+See `docs/decisions/DECISION_LOG.md` and `contracts/CONTRACT_REGISTER.md`
+for exactly what is and is not settled, item by item.

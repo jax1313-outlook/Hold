@@ -1,0 +1,4 @@
+{
+  "$comment": "Working copy of contracts/config.schema.json for lane sessions to validate config/sandbox.config.json against. contracts/config.schema.json is the frozen source of truth — if these two ever diverge, contracts/ wins and this copy is stale.",
+  "$ref": "../contracts/config.schema.json"
+}

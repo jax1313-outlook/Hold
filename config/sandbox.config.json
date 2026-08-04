@@ -1,0 +1,17 @@
+{
+  "environment": "sandbox",
+  "roots": {
+    "operations": "D:\\DispatchSandbox\\Operations",
+    "library": "D:\\DispatchSandbox\\Library",
+    "archive": "D:\\DispatchSandbox\\Archive"
+  },
+  "database": "D:\\DispatchSandbox\\Operations\\Data\\dispatch.db",
+  "schema_versions": {
+    "fuel_record": "1.0-DRAFT",
+    "expense_record": "1.0-DRAFT",
+    "evidence_record": "1.0",
+    "mileage_record": "1.0",
+    "queue_item": "1.0",
+    "audit_entry": "1.0"
+  }
+}
