@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/audit_entry.schema.json",
+  "title": "AuditEntry",
+  "status": "FROZEN v1.0",
+  "status_note": "DISPATCH_BUILD_BLUEPRINT_v1 Part 1.6, verbatim field list. Table audit_log, exported monthly to ARCHIVE\\AuditRolls\\YYYY-MM.jsonl.",
+  "immutability": "Append-only. INSERT-only — no UPDATE/DELETE statements exist in the codebase against this table. The database bootstrap installs a delete-revoking trigger.",
+  "type": "object",
+  "properties": {
+    "ts": { "type": "string", "format": "date-time" },
+    "actor": { "type": "string", "description": "Worker name, or \"human:mike\"." },
+    "actor_version": { "type": "string" },
+    "constitution_version": { "type": "string", "description": "The constitution version the actor was certified against." },
+    "action": { "type": "string" },
+    "input_refs": { "type": "array", "items": { "type": "string" }, "description": "JSON." },
+    "output_refs": { "type": "array", "items": { "type": "string" }, "description": "JSON." },
+    "gate_ref": { "type": ["object", "null"], "description": "Set when a hard gate was crossed: who approved, queue_item_id." },
+    "trade_memory_refs": { "type": "array", "items": { "type": "string" }, "description": "Patterns relied on. This is what makes learned behavior auditable. Trade Memory itself is HELD (#14); this field exists so dependency is already traceable when #14 is decided." },
+    "outcome": { "type": "string", "enum": ["completed", "flagged", "quarantined"] },
+    "note": { "type": ["string", "null"] }
+  },
+  "required": ["ts", "actor", "actor_version", "constitution_version", "action", "outcome"],
+  "additionalProperties": false
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/expense_record.DRAFT.json",
+  "title": "ExpenseRecord",
+  "status": "DRAFT — HELD",
+  "hold_number": "2, 3",
+  "status_note": "Field list verbatim from DISPATCH_BUILD_BLUEPRINT_v1 Part 1.2. Held on #2 (fuel_record_id cross-link) and #3 (category enum) per docs/decisions/DECISION_LOG.md. No expense_records table may be created and no ExpenseRecord may be written while this file carries DRAFT status.",
+  "type": "object",
+  "properties": {
+    "expense_record_id": { "type": "string", "description": "ULID." },
+    "evidence_record_id": { "type": "string" },
+    "fuel_record_id": { "type": ["string", "null"], "description": "OPEN — set when D1 twin. Same open question as fuel_record.DRAFT.json's expense_record_id." },
+    "purchase_date": { "type": "string", "format": "date" },
+    "vendor_name": { "type": "string" },
+    "vendor_location": { "type": ["string", "null"] },
+    "line_description": { "type": "string", "description": "Verbatim from document." },
+    "category": {
+      "type": "string",
+      "description": "OPEN — enum values are decision #3. See contracts/expense_vocabulary.HOLD.md for the blueprint's draft candidate list (Part 1.5) — NOT frozen, NOT embeddable in code. Validation must reject any value outside the eventually-frozen list; the Receipt Agent never extends it."
+    },
+    "amount": { "type": "number" },
+    "tax_amount": { "type": ["number", "null"] },
+    "currency": { "type": "string", "enum": ["USD", "CAD"] },
+    "payment_method": { "type": ["string", "null"] },
+    "card_last4": { "type": ["string", "null"] },
+    "unit_number": { "type": ["string", "null"] },
+    "driver": { "type": ["string", "null"] },
+    "load_id": { "type": ["string", "null"] },
+    "dedup_key": { "type": "string" },
+    "status": { "type": "string", "enum": ["staged", "approved", "posted"] },
+    "quickbooks_ref": { "type": ["string", "null"] },
+    "extraction_confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "review_status": { "type": "string" },
+    "schema_version": { "type": "string", "const": "1.0" }
+  },
+  "required": ["expense_record_id", "evidence_record_id", "purchase_date", "vendor_name", "line_description", "category", "amount", "currency", "dedup_key", "status", "extraction_confidence", "review_status", "schema_version"],
+  "additionalProperties": false,
+  "forbidden_fields": "Never added: GL account code, deductibility, tax treatment, reimbursement status — all accounting judgments, forbidden to the Receipt Agent by its boundary clause (#12)."
+}

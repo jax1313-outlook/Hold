@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/evidence_record.schema.json",
+  "title": "EvidenceRecord",
+  "status": "FROZEN v1.0",
+  "status_note": "DISPATCH_BUILD_BLUEPRINT_v1 Part 1.2, verbatim field list.",
+  "immutability": "No update, no delete operation exists on this record type, permanently. The database bootstrap installs delete-revoking triggers on evidence_records.",
+  "type": "object",
+  "properties": {
+    "evidence_record_id": { "type": "string", "description": "ULID. Primary key." },
+    "archive_path": { "type": "string", "description": "Under ARCHIVE root: ARCHIVE\\Evidence\\YYYY\\MM\\<evidence_id>.<ext>." },
+    "file_hash": { "type": "string", "description": "SHA-256. Integrity proof AND document-level dedup key." },
+    "document_type": { "type": "string", "enum": ["pump_receipt", "fuel_card_statement", "credit_card_statement", "invoice", "csv_export", "email_attachment"] },
+    "vendor": { "type": ["string", "null"] },
+    "document_date": { "type": "string", "format": "date" },
+    "capture_date": { "type": "string", "format": "date-time" },
+    "statement_period_start": { "type": ["string", "null"], "format": "date", "description": "Statements only." },
+    "statement_period_end": { "type": ["string", "null"], "format": "date" },
+    "page_count": { "type": ["integer", "null"] },
+    "derived_record_ids": { "type": "array", "items": { "type": "string" }, "description": "JSON array — the container's children. Appended only via link_children; never removed." },
+    "extraction_status": { "type": "string", "enum": ["complete", "partial", "failed", "duplicate_document"] },
+    "duplicate_of": { "type": ["string", "null"] },
+    "reviewed_by": { "type": ["string", "null"] },
+    "review_date": { "type": ["string", "null"], "format": "date-time" },
+    "retention_class": { "type": "string", "default": "ifta_4yr" },
+    "schema_version": { "type": "string", "const": "1.0" }
+  },
+  "required": ["evidence_record_id", "archive_path", "file_hash", "document_type", "document_date", "capture_date", "derived_record_ids", "extraction_status", "retention_class", "schema_version"],
+  "additionalProperties": false,
+  "interface_note": "Contract 1.4 (dispatch.evidence module): register(file_path, document_type, metadata) archives BEFORE any extraction, computes SHA-256, sets the file read-only, inserts the EvidenceRecord, writes the Library index entry, returns the record. Duplicate hash -> returns existing record flagged duplicate_document. retrieve(evidence_record_id) verifies hash on read; mismatch raises and queues an exception queue item. link_children(evidence_record_id, derived_record_ids) appends to the child list. No update, no delete, permanently."
+}

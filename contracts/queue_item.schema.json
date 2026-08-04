@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/queue_item.schema.json",
+  "title": "QueueItem",
+  "status": "FROZEN v1.0",
+  "status_note": "DISPATCH_BUILD_BLUEPRINT_v1 Part 1.3, verbatim field list.",
+  "type": "object",
+  "properties": {
+    "queue_item_id": { "type": "string", "description": "ULID." },
+    "type": { "type": "string", "enum": ["approval", "review", "exception", "decision"] },
+    "source_worker": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "priority": { "type": "string", "enum": ["urgent", "today", "whenever"], "description": "Triage labels authored by Mike, never invented by the Manager." },
+    "subject": { "type": "string", "description": "One line, human-readable." },
+    "payload_refs": { "type": "array", "items": { "type": "string" }, "description": "JSON: record/evidence ids." },
+    "status": { "type": "string", "enum": ["open", "in_review", "approved", "rejected", "resolved"] },
+    "decided_by": { "type": ["string", "null"] },
+    "decided_at": { "type": ["string", "null"], "format": "date-time" },
+    "decision_note": { "type": ["string", "null"] }
+  },
+  "required": ["queue_item_id", "type", "source_worker", "created_at", "priority", "subject", "status"],
+  "additionalProperties": false,
+  "constitutional_rules_enforced_in_code": [
+    "No status transition ever fires on a timer — silence is never consent.",
+    "The full queue is always visible.",
+    "Every transition writes an audit entry.",
+    "Rejected/quarantined items are never deleted, only resolved with a note."
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/config.schema.json",
+  "title": "DispatchConfig",
+  "status": "FROZEN v1.0",
+  "status_note": "DISPATCH_BUILD_BLUEPRINT_v1 Part 1.1, verbatim shape. Storage mapping is approval item #1 (APPROVED 2026-08-03).",
+  "type": "object",
+  "properties": {
+    "environment": { "type": "string", "enum": ["production", "sandbox"] },
+    "roots": {
+      "type": "object",
+      "description": "Three logical tiers, three physical roots. 'Memory' is retired as a tier name (DISPATCH_MEMORY_AUDIT_v1's naming-collision fix, adopted).",
+      "properties": {
+        "operations": { "type": "string", "description": "OPERATIONS — living system: open-period records, queues, trade memory, print queue, intake. Production: D:\\Dispatch Operations." },
+        "library": { "type": "string", "description": "LIBRARY — approved truth: constitutions, templates, procedures, vocabulary, rate tables, evidence index. Production: D:\\Memory\\Library." },
+        "archive": { "type": "string", "description": "ARCHIVE — history: immutable originals, sealed bundles, report snapshots, audit rolls. Production: D:\\Archive." }
+      },
+      "required": ["operations", "library", "archive"],
+      "additionalProperties": false
+    },
+    "database": { "type": "string", "description": "<operations>\\Data\\dispatch.db" },
+    "schema_versions": {
+      "type": "object",
+      "properties": {
+        "fuel_record": { "type": "string" },
+        "expense_record": { "type": "string" },
+        "evidence_record": { "type": "string" },
+        "mileage_record": { "type": "string" },
+        "queue_item": { "type": "string" },
+        "audit_entry": { "type": "string" }
+      },
+      "required": ["fuel_record", "expense_record", "evidence_record", "mileage_record", "queue_item", "audit_entry"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["environment", "roots", "database", "schema_versions"],
+  "additionalProperties": false,
+  "refusal_rule": "A component MUST refuse to start if environment is 'sandbox' but any root resolves under a production path (D:\\Dispatch Operations, D:\\Memory, D:\\Archive). No component ever hardcodes a root — all paths come from this file.",
+  "trade_memory_note": "Trade Memory is per-worker working knowledge and lives under OPERATIONS (Workers\\<name>\\TradeMemory\\), inspectable, never secret. Not a separate root."
+}

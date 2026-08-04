@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/mileage_record.schema.json",
+  "title": "MileageRecord",
+  "status": "FROZEN v1.0",
+  "status_note": "DISPATCH_BUILD_BLUEPRINT_v1 Part 1.2, verbatim field list. One record = one unit, one period, one jurisdiction segment; a unit's period is represented as multiple MileageRecord rows, one per jurisdiction.",
+  "type": "object",
+  "properties": {
+    "mileage_record_id": { "type": "string", "description": "ULID." },
+    "unit_number": { "type": "string" },
+    "period_start": { "type": "string", "format": "date" },
+    "period_end": { "type": "string", "format": "date" },
+    "jurisdiction": { "type": "string", "minLength": 2, "maxLength": 2, "description": "2-char state/province code." },
+    "miles": { "type": "number", "exclusiveMinimum": 0 },
+    "source": { "type": "string", "enum": ["manual_worksheet", "ops_agent", "eld_import"], "description": "v1 reality: only manual_worksheet is used, entered by Mike via tools/mileage_worksheet.py. The schema is identical when Dispatch Ops automates it later." },
+    "odometer_start": { "type": ["number", "null"] },
+    "odometer_end": { "type": ["number", "null"] },
+    "entered_by": { "type": "string" },
+    "schema_version": { "type": "string", "const": "1.0" }
+  },
+  "required": ["mileage_record_id", "unit_number", "period_start", "period_end", "jurisdiction", "miles", "source", "entered_by", "schema_version"],
+  "additionalProperties": false
+}
