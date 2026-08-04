@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Pilot{% endblock %}
+{% block content %}
+
+<h2>DispatchPilot</h2>
+<p>Drop files into <code>DispatchPilot\Inbox</code>, then process them here.</p>
+
+{% if error %}
+<p class="error">Could not process the Inbox: {{ error }}</p>
+{% endif %}
+
+{% if summary %}
+<div class="result">
+  <h3>Last run</h3>
+  {% if summary.receipt_batch %}
+  <h4>Receipts</h4>
+  <ul>
+    {% for entry in summary.receipt_batch %}
+    <li>
+      {{ entry.file }} &rarr;
+      {% if entry.destination_folder %}{{ entry.destination_folder }}{% else %}quarantined / held for review, see Queue{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if summary.held_for_review %}
+  <h4>Held for review</h4>
+  <ul>
+    {% for entry in summary.held_for_review %}
+    <li>{{ entry.file }} &rarr; {{ entry.folder }} ({{ entry.document_type.replace('_', ' ') }})</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if not summary.receipt_batch and not summary.held_for_review %}
+  <p class="empty">Inbox was empty -- nothing to process.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+<form method="post" action="{{ url_for('pilot_process') }}">
+  <button class="btn btn-run" type="submit">Process Inbox</button>
+</form>
+
+<h3>Current folders</h3>
+{% for name, files in contents.items() %}
+<h4>{{ name }} ({{ files|length }})</h4>
+{% if files %}
+<ul>
+  {% for f in files %}<li>{{ f }}</li>{% endfor %}
+</ul>
+{% else %}
+<p class="empty">Empty.</p>
+{% endif %}
+{% endfor %}
+
+{% endblock %}
