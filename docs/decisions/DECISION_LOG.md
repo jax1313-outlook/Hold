@@ -113,6 +113,23 @@ report was evidence for the decision, not a substitute for it.
 Group 1's second merge, per `DISPATCH_BUILD_BLUEPRINT_v1` Part 4.5
 (after Lane A).
 
+### Lane C merge approval — APPROVED, 2026-08-04
+
+Per Hard Approval Gate #7: Mike reviewed the Lane C human walkthrough
+(`docs/lanes/C/WALKTHROUGH_REPORT_v1.md` — intake through routing and
+quarantine both, a live reefer-safety refusal check, a draft IFTA
+worksheet from fixture rate data with all ten exception detectors run,
+and a full submit → approve → seal cycle with the sealed bundle
+confirmed on disk) and, when asked whether he was satisfied and wanted it
+merged, replied "yes continue" — a direct, affirmative instruction
+responding to that specific question, not silence or a timeout. This is
+the affirmative act gate 5 requires; the walkthrough report was evidence
+for the decision, not a substitute for it.
+
+**Unblocked:** `build/receipt-ifta` merges into `integration` — Lane C is
+Group 1's third merge, per `DISPATCH_BUILD_BLUEPRINT_v1` Part 4.5 (after
+Lanes A and B).
+
 ## Open
 
 (none — all four originally-held items, plus the Lane A and Lane B merge

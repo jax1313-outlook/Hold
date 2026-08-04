@@ -134,5 +134,11 @@ Per launch package §8 and the Librarian/Receipt/IFTA constitutions'
   entered via the tool; a draft IFTA worksheet built from fixture rates;
   all ten exception detectors run (correctly flagging an implausible
   single-data-point fleet MPG); submit → approve → seal, with the sealed
-  bundle confirmed on disk. Sign-off and merge decision are Mike's next
-  step, not something a build session supplies on its own behalf.
+  bundle confirmed on disk. Mike approved and instructed the merge;
+  recorded in `docs/decisions/DECISION_LOG.md` ("Lane C merge approval —
+  APPROVED, 2026-08-04").
+
+## Session 2 (2026-08-04) — merge
+
+`build/receipt-ifta` merged into `integration` following Mike's
+walkthrough sign-off (above).

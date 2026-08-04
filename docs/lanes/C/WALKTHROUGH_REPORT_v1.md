@@ -158,6 +158,15 @@ for a decision, not the decision itself. Merging `build/receipt-ifta`
 into `integration` still requires Mike's own affirmative approval, stated
 in writing, before it happens.
 
+## Sign-off
+
+Mike replied "yes continue" when asked whether he was satisfied with this
+walkthrough and wanted it merged — a direct instruction responding to
+that specific question, 2026-08-04. Recorded per Hard Approval Gate #7 in
+`docs/decisions/DECISION_LOG.md` ("Lane C merge approval — APPROVED,
+2026-08-04"). The merge was performed immediately after in this same
+session.
+
 ---
 
 *End of LANE C WALKTHROUGH REPORT v1.*
