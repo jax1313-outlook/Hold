@@ -81,6 +81,39 @@ to create a reefer-flagged `FuelRecord` in the first place
 could still happen — a bug elsewhere, or a hand-edited row — and should
 always come back empty in correct operation.
 
+### Live Indicators (`live_indicators.py`) — informational only
+
+```python
+from dispatch.ifta.live_indicators import live_indicators
+
+read_only_conn = open_read_only(config["database"])
+result = live_indicators(read_only_conn, quarter="2026-Q2", fuel_type="diesel")
+```
+
+Four of the ten detectors — `odometer_discontinuity`,
+`active_truck_days_no_mileage`, `late_arrival_closed_quarter`,
+`reefer_in_propulsion` — take only a read-only connection and a date
+range or fuel type, never a built worksheet. `live_indicators()` calls
+them directly, **never through `run_all_detectors()`**, so nothing is
+persisted to `ifta_exceptions` and no Queue item is ever created just
+because someone viewed a live dashboard. Each finding carries a
+`severity` (`critical`/`warning`/`notice`) from `SEVERITY_BY_EXCEPTION_TYPE`
+— its own vocabulary, deliberately distinct from the Queue's
+`urgent`/`today`/`whenever` priorities, since a live indicator never
+touches the Queue.
+
+`broken_evidence_linkage` is the fifth worksheet-free detector by
+signature alone, and is deliberately **not** included here: it calls
+`EvidenceSpine.retrieve()`, which always writes a real `audit_log` row
+and, on a hash mismatch, a real urgent Queue item — a side effect from
+merely viewing a dashboard, exactly what this module exists to avoid. It
+remains available today only through a real `build()` +
+`run_all_detectors()`, as a Category 1 (confirmed) exception. See
+`docs/ifta-clerk/IFTA_CLERK_BLUEPRINT_v1.md` section 8 for the full
+Category 1 / Category 2 distinction, and
+`docs/ifta-clerk/LIVE_INDICATORS_NOTES_v1.md` for this module's approval
+history and test coverage.
+
 ## Package builder (`package.py`)
 
 ```python
