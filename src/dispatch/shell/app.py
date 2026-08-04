@@ -28,6 +28,7 @@ from flask import Flask, g, render_template
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
 from dispatch.common.db import bootstrap
+from dispatch.ifta.app import create_app as create_ifta_app
 from dispatch.pilot.intake import PilotIntake
 from dispatch.queue.app import create_app as create_queue_app
 from dispatch.queue.store import QueueStore
@@ -127,12 +128,14 @@ def create_app(config: dict[str, Any]) -> Flask:
     shell = _build_shell_app(config)
     queue_app = create_queue_app(config)
     reports_app = create_reports_app(config)
+    ifta_app = create_ifta_app(config)
 
     shell.wsgi_app = DispatcherMiddleware(
         shell.wsgi_app,
         {
             "/queue": queue_app,
             "/reports": reports_app,
+            "/ifta": ifta_app,
         },
     )
     return shell

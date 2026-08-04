@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}IFTA Worksheets{% endblock %}
+{% block content %}
+
+<h2>Build Worksheet</h2>
+{% if build_error %}
+<p class="error">Could not build: {{ build_error }}</p>
+{% endif %}
+<form method="post" action="{{ url_for('build') }}" class="ifta-form">
+  <label>Quarter
+    <input type="text" name="quarter" value="{{ default_quarter }}" placeholder="e.g. 2026-Q3">
+  </label>
+  <label>Fuel type
+    <input type="text" name="fuel_type" value="{{ default_fuel_type }}">
+  </label>
+  <label>Rate table version
+    {% if available_versions %}
+    <select name="rate_table_version">
+      {% for v in available_versions %}
+      <option value="{{ v }}">{{ v }}</option>
+      {% endfor %}
+    </select>
+    {% else %}
+    <input type="text" name="rate_table_version" placeholder="no rates entered for this quarter/fuel type yet">
+    {% endif %}
+  </label>
+  <button class="btn btn-run" type="submit">Build Worksheet</button>
+</form>
+<p class="empty">Building also runs all ten exception detectors immediately -- you'll see the worksheet and any findings together.</p>
+
+<h2>Worksheets</h2>
+{% if worksheets %}
+<ul class="worksheet-list">
+  {% for w in worksheets %}
+  <li>
+    <a href="{{ url_for('worksheet_detail', ifta_worksheet_id=w.ifta_worksheet_id) }}">
+      {{ w.quarter }} &middot; {{ w.fuel_type }} &middot; net tax {{ "%.2f"|format(w.total_net_tax) }}
+    </a>
+    <span class="meta status-{{ w.status }}">{{ w.status }}</span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">No worksheets built yet.</p>
+{% endif %}
+
+{% endblock %}

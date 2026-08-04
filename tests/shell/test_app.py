@@ -26,6 +26,31 @@ def test_reports_is_mounted_and_reachable(client):
     assert resp.status_code == 200
 
 
+def test_ifta_is_mounted_and_reachable(client):
+    resp = client.get("/ifta/")
+    assert resp.status_code == 200
+    assert b"Build Worksheet" in resp.data
+
+
+def test_ifta_static_asset_resolves_under_the_mount_prefix(client):
+    resp = client.get("/ifta/static/style.css")
+    assert resp.status_code == 200
+    assert b"font-family" in resp.data
+
+
+def test_ifta_internal_link_generated_by_its_own_template_is_correctly_prefixed(client):
+    """Same class of check as the Queue link test above -- IFTA's own
+    nav (base.html) links to Rates/Mileage/Queue via url_for; confirm
+    they resolve under /ifta/... when mounted, not bare paths."""
+    resp = client.get("/ifta/")
+    body = resp.data.decode()
+    assert "/ifta/rates" in body
+    assert "/ifta/mileage" in body
+
+    rates_resp = client.get("/ifta/rates")
+    assert rates_resp.status_code == 200
+
+
 def test_queue_static_asset_resolves_under_the_mount_prefix(client):
     resp = client.get("/queue/static/style.css")
     assert resp.status_code == 200

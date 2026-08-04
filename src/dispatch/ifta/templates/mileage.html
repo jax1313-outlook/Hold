@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Mileage{% endblock %}
+{% block content %}
+
+<a class="back" href="{{ url_for('index') }}">&larr; Back to worksheets</a>
+<h2>Mileage</h2>
+
+{% if error %}
+<p class="error">Could not add mileage: {{ error }}</p>
+{% endif %}
+
+<form method="post" action="{{ url_for('mileage_add') }}" class="ifta-form">
+  <label>Unit number <input type="text" name="unit_number" placeholder="e.g. T-104" required></label>
+  <label>Jurisdiction <input type="text" name="jurisdiction" placeholder="e.g. TX" required></label>
+  <label>Period start <input type="text" name="period_start" placeholder="YYYY-MM-DD" required></label>
+  <label>Period end <input type="text" name="period_end" placeholder="YYYY-MM-DD" required></label>
+  <label>Miles <input type="text" name="miles" required></label>
+  <label>Odometer start (optional) <input type="text" name="odometer_start"></label>
+  <label>Odometer end (optional) <input type="text" name="odometer_end"></label>
+  <label>Entered by <input type="text" name="entered_by" placeholder="e.g. human:mike" required></label>
+  <button class="btn btn-run" type="submit">Add Mileage</button>
+</form>
+
+<h3>Existing mileage records</h3>
+{% if records %}
+<table class="breakdown">
+  <thead><tr><th>Unit</th><th>State</th><th>Period</th><th>Miles</th><th>Entered by</th></tr></thead>
+  <tbody>
+    {% for r in records %}
+    <tr>
+      <td>{{ r.unit_number }}</td><td>{{ r.jurisdiction }}</td>
+      <td>{{ r.period_start }} &ndash; {{ r.period_end }}</td>
+      <td>{{ r.miles }}</td><td>{{ r.entered_by }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No mileage entered yet.</p>
+{% endif %}
+
+{% endblock %}

@@ -86,3 +86,35 @@ with a `source_version` like `"fixture-v1"` that could never be mistaken
 for a real quarterly publication citation. They are never installed via
 `tools/seed_library.py` — see `library_seed/RateTables/README.md` for the
 real-data gap this doesn't resolve.
+
+## The web UI (`app.py`)
+
+Per `docs/ifta-ui/DISPATCH_IFTA_UI_LAUNCH_PACKAGE_v1.md`: closes the gap
+two real pilot runs found
+(`docs/pilot/DISPATCH_PILOT_RUN_2_REPORT_v1.md` finding #2) — mileage
+entry, worksheet building, and sealing all required Python/CLI before
+this. Mounted at `/ifta` under `dispatch.shell`. Approval stays exactly
+where it already works: the mounted Queue at `/queue`.
+
+Every write route calls one of the functions documented above,
+unmodified — `rates.insert_rate()`, `WorksheetEngine.build()`,
+`run_all_detectors()`, `submit_for_approval()`, `attempt_seal()` (whose
+real refusal-before-approval is preserved exactly, only surfaced). The
+one exception is mileage entry, which duplicates (doesn't import)
+`tools/mileage_worksheet.py`'s `record_mileage()` INSERT, since that
+script lives outside `src/dispatch` and isn't meant to be imported as a
+library — both stay independently correct against the same real
+`mileage_record.schema.json` shape.
+
+`POST /build` calls `WorksheetEngine.build()` and `run_all_detectors()`
+together, in one request — two separate functions in the existing code,
+called as one action here, so Mike always sees a worksheet's exception
+findings alongside its numbers before deciding whether to submit it.
+`MissingRateError`/`InsufficientDataError` render as a clear message on
+the form, never a raw 500.
+
+`create_app()` eagerly calls `dispatch.ifta.db.install_schema()` at
+startup, the same fix Reports' own app.py already applies to
+`print_queue` — `rate_tables`/`ifta_worksheets`/etc. are otherwise
+created lazily the first time something real happens, so a genuinely
+fresh install would 500 on its very first page load without this.

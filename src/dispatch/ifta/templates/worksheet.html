@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ worksheet.quarter }} {{ worksheet.fuel_type }}{% endblock %}
+{% block content %}
+
+<a class="back" href="{{ url_for('index') }}">&larr; Back to worksheets</a>
+
+<h2>{{ worksheet.quarter }} &middot; {{ worksheet.fuel_type }}</h2>
+<p class="status-{{ worksheet.status }}">Status: {{ worksheet.status }}</p>
+
+<div class="big-number">
+  <span class="value">${{ "%.2f"|format(worksheet.total_net_tax) }}</span>
+  <span class="label">Total net tax</span>
+</div>
+<div class="secondary">
+  <span class="value">{{ "%.2f"|format(worksheet.fleet_mpg) }}</span>
+  <span class="label">Fleet MPG</span>
+</div>
+<p class="meta">Rate table version: {{ worksheet.rate_table_version }}</p>
+
+<h3>By jurisdiction</h3>
+<table class="breakdown">
+  <thead>
+    <tr><th>State</th><th>Miles</th><th>Taxable gal</th><th>Tax paid gal</th><th>Rate</th><th>Net tax</th></tr>
+  </thead>
+  <tbody>
+    {% for line in worksheet.lines %}
+    <tr>
+      <td>{{ line.jurisdiction }}</td>
+      <td>{{ "%.1f"|format(line.miles) }}</td>
+      <td>{{ "%.1f"|format(line.taxable_gallons) }}</td>
+      <td>{{ "%.1f"|format(line.tax_paid_gallons) }}</td>
+      <td>{{ line.rate }}</td>
+      <td>${{ "%.2f"|format(line.net_tax) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h3>Exceptions ({{ findings|length }})</h3>
+{% if findings %}
+<ul class="exception-list">
+  {% for f in findings %}
+  <li><strong>{{ f.exception_type }}</strong>: {{ f.detail }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">None found.</p>
+{% endif %}
+
+<h3>Approval</h3>
+{% if can_submit %}
+<form method="post" action="{{ url_for('submit', ifta_worksheet_id=worksheet.ifta_worksheet_id) }}">
+  <button class="btn btn-run" type="submit">Submit for Approval</button>
+</form>
+{% elif queue_item %}
+<p class="meta">
+  Approval queue item: <a href="/queue/items/{{ queue_item.queue_item_id }}">{{ queue_item.status }}</a>
+</p>
+{% endif %}
+
+<h3>Seal</h3>
+{% if worksheet.status == "sealed" %}
+<p class="empty">Sealed {{ worksheet.sealed_at }}. This worksheet is immutable.</p>
+{% elif can_seal %}
+<form method="post" action="{{ url_for('seal', ifta_worksheet_id=worksheet.ifta_worksheet_id) }}">
+  <button class="btn btn-run" type="submit">Seal</button>
+</form>
+{% else %}
+<button class="btn btn-run" type="button" disabled title="{{ seal_blocked_reason }}">Seal</button>
+<p class="empty">{{ seal_blocked_reason }}</p>
+{% endif %}
+
+{% endblock %}
