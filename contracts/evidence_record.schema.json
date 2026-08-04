@@ -2,15 +2,15 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "contracts/evidence_record.schema.json",
   "title": "EvidenceRecord",
-  "status": "FROZEN v1.0",
-  "status_note": "DISPATCH_BUILD_BLUEPRINT_v1 Part 1.2, verbatim field list.",
+  "status": "FROZEN v1.1",
+  "status_note": "DISPATCH_BUILD_BLUEPRINT_v1 Part 1.2, verbatim field list. Amended to v1.1 2026-08-04: additive-only document_type enum expansion (rate_confirmation, proof_of_delivery, eld_export, unclassified) per the Evidence First Doctrine -- see docs/decisions/DECISION_LOG.md. No existing value renamed, removed, or reinterpreted; no other field changed.",
   "immutability": "No update, no delete operation exists on this record type, permanently. The database bootstrap installs delete-revoking triggers on evidence_records.",
   "type": "object",
   "properties": {
     "evidence_record_id": { "type": "string", "description": "ULID. Primary key." },
     "archive_path": { "type": "string", "description": "Under ARCHIVE root: ARCHIVE\\Evidence\\YYYY\\MM\\<evidence_id>.<ext>." },
     "file_hash": { "type": "string", "description": "SHA-256. Integrity proof AND document-level dedup key." },
-    "document_type": { "type": "string", "enum": ["pump_receipt", "fuel_card_statement", "credit_card_statement", "invoice", "csv_export", "email_attachment"] },
+    "document_type": { "type": "string", "enum": ["pump_receipt", "fuel_card_statement", "credit_card_statement", "invoice", "csv_export", "email_attachment", "rate_confirmation", "proof_of_delivery", "eld_export", "unclassified"] },
     "vendor": { "type": ["string", "null"] },
     "document_date": { "type": "string", "format": "date" },
     "capture_date": { "type": "string", "format": "date-time" },
@@ -23,7 +23,7 @@
     "reviewed_by": { "type": ["string", "null"] },
     "review_date": { "type": ["string", "null"], "format": "date-time" },
     "retention_class": { "type": "string", "default": "ifta_4yr" },
-    "schema_version": { "type": "string", "const": "1.0" }
+    "schema_version": { "type": "string", "const": "1.1" }
   },
   "required": ["evidence_record_id", "archive_path", "file_hash", "document_type", "document_date", "capture_date", "derived_record_ids", "extraction_status", "retention_class", "schema_version"],
   "additionalProperties": false,

@@ -6,7 +6,7 @@ truth for every file in `contracts/`. Updated only by Mike's decision.
 | Contract | File | Status | Version | Source |
 |---|---|---|---|---|
 | Config | `config.schema.json` | **FROZEN** | 1.0 | Blueprint 1.1. Storage mapping = approval item #1 (APPROVED 2026-08-03). |
-| Evidence Record | `evidence_record.schema.json` | **FROZEN** | 1.0 | Blueprint 1.2. In force. |
+| Evidence Record | `evidence_record.schema.json` | **FROZEN** | 1.1 | Blueprint 1.2. In force. Amended to 1.1 2026-08-04 (additive `document_type` values; see change history). |
 | Mileage Record | `mileage_record.schema.json` | **FROZEN** | 1.0 | Blueprint 1.2. In force. |
 | Queue Item | `queue_item.schema.json` | **FROZEN** | 1.0 | Blueprint 1.3. In force. |
 | Archive/Evidence Interface | (behavioral — see `evidence_record.schema.json` `interface_note`) | **FROZEN** | 1.0 | Blueprint 1.4. In force. |
@@ -32,6 +32,19 @@ remain as of 2026-08-04.
   `expense_vocabulary.schema.json` (FROZEN) +
   `library_seed/Vocabulary/expense_vocabulary.v1.json` (installed Library
   copy). See `docs/decisions/DECISION_LOG.md` for the full record.
+- 2026-08-04 (amendment, post-Group-1-merge): `evidence_record.schema.json`
+  FROZEN v1.0 → v1.1. Additive-only: `document_type` enum gains
+  `rate_confirmation`, `proof_of_delivery`, `eld_export`, `unclassified`.
+  No existing value renamed, removed, or reinterpreted; no other field
+  touched. Driven by the Evidence First Doctrine (a legitimate business
+  artifact is evidence regardless of whether this system yet knows how to
+  process it) adopted for the DispatchPilot input workflow. Implementing
+  code updated in the same change: `src/dispatch/evidence/interface.py`'s
+  `VALID_DOCUMENT_TYPES` and `SCHEMA_VERSION` ("1.1"). See
+  `docs/decisions/DECISION_LOG.md` for the full record. No lane branch was
+  open at amendment time (all of Group 1 already merged into
+  `integration`), so the "same-day notice to every open lane" clause has
+  no open lane to notify.
 
 ## Rule
 

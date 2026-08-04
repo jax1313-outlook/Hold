@@ -33,7 +33,7 @@ def sandbox_config(tmp_path) -> dict:
         "schema_versions": {
             "fuel_record": "1.0",
             "expense_record": "1.0",
-            "evidence_record": "1.0",
+            "evidence_record": "1.1",
             "mileage_record": "1.0",
             "queue_item": "1.0",
             "audit_entry": "1.0",
