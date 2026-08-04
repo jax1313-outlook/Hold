@@ -1,0 +1,27 @@
+{
+  "blessed": false,
+  "constructed_by": "build_session",
+  "note": "Self-constructed fixture for Lane C's golden regression test. Not yet reviewed or blessed by Mike -- see LANE_C_LAUNCH_PACKAGE_v1.md risk #4 and docs/lanes/C/NOTES.md. A green test against this file proves the pipeline is internally consistent, not that Mike has certified extraction accuracy.",
+  "source_csv": "csv_export_001.csv",
+  "document_type": "csv_export",
+  "expected_routed": [
+    {
+      "category": "fuel",
+      "creates_fuel_record": true,
+      "vendor_name": "Flying J Travel Center",
+      "jurisdiction": "TX",
+      "gallons_normalized": 87.5,
+      "amount": 350.0,
+      "unit_number": "T-104"
+    },
+    {
+      "category": "meals",
+      "creates_fuel_record": false,
+      "vendor_name": "Truck Stop Diner",
+      "amount": 18.50,
+      "unit_number": "T-104"
+    }
+  ],
+  "expected_document_total": 369.70,
+  "expected_quarantined_lines": 0
+}
