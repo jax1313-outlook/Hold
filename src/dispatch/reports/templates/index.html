@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+
+{% if recents %}
+<nav class="recents">
+  {% for r in recents %}
+  <a class="chip" href="{{ url_for('run_report', report_type=r.report_type, date_range='custom') }}">
+    {{ r.report_type.replace('_', ' ')|title }} &middot; {{ r.period_label }}
+  </a>
+  {% endfor %}
+</nav>
+{% endif %}
+
+<form action="{{ url_for('run_report') }}" method="get" class="report-form">
+  <label>Report Type
+    <select name="report_type">
+      {% for rt in report_types %}
+      <option value="{{ rt }}">{{ report_labels[rt] }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>Date Range
+    <select name="date_range">
+      {% for key, label in date_range_labels.items() %}
+      <option value="{{ key }}">{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>Truck (optional)
+    <input type="text" name="unit_number" placeholder="e.g. T-104">
+  </label>
+
+  <label>State (optional)
+    <input type="text" name="jurisdiction" placeholder="e.g. TX">
+  </label>
+
+  <label>Category (optional, Expenses only)
+    <input type="text" name="category" placeholder="e.g. fuel">
+  </label>
+
+  <button class="btn btn-run" type="submit">Run Report</button>
+</form>
+
+<p><a href="{{ url_for('print_queue_view') }}">Print queue &rarr;</a></p>
+{% endblock %}

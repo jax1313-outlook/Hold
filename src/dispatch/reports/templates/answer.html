@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Report{% endblock %}
+{% block content %}
+<a class="back" href="{{ url_for('index') }}">&larr; Back</a>
+
+{{ answer_html | safe }}
+
+<form method="post" action="{{ url_for('save_report') }}" class="save-form">
+  <input type="hidden" name="report_type" value="{{ report_type }}">
+  <input type="hidden" name="date_range" value="{{ date_range }}">
+  <input type="hidden" name="unit_number" value="{{ unit_number }}">
+  <input type="hidden" name="jurisdiction" value="{{ jurisdiction }}">
+  <input type="hidden" name="category" value="{{ category }}">
+  <button class="btn btn-save" type="submit">Save For Printing</button>
+</form>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Print Queue{% endblock %}
+{% block content %}
+<a class="back" href="{{ url_for('index') }}">&larr; Back</a>
+<h2>Print Queue</h2>
+
+{% if items %}
+<ul class="queue-list">
+  {% for item in items %}
+  <li class="queue-item status-{{ item.status }}">
+    <a href="{{ url_for('view_snapshot', print_queue_id=item.print_queue_id) }}">
+      {{ item.report_type.replace('_', ' ')|title }} &middot; {{ item.period_label }}
+    </a>
+    <span class="meta">saved {{ item.saved_at }} &middot; {{ item.status }}</span>
+    {% if item.status != 'cleared' %}
+    <form method="post" action="{{ url_for('mark_printed', print_queue_id=item.print_queue_id) }}">
+      <button class="btn btn-small" type="submit">Mark printed</button>
+    </form>
+    <form method="post" action="{{ url_for('clear_item', print_queue_id=item.print_queue_id) }}">
+      <button class="btn btn-small btn-clear" type="submit">Clear</button>
+    </form>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">Nothing saved yet.</p>
+{% endif %}
+{% endblock %}

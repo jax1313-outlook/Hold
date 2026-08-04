@@ -1,0 +1,24 @@
+{
+  "report_type": "fuel_spend",
+  "version": "1",
+  "title": "Fuel Spend",
+  "big_number": {
+    "field": "total_amount",
+    "label": "Total Fuel Spend",
+    "format": "currency"
+  },
+  "secondary": {
+    "field": "total_gallons",
+    "label": "Gallons",
+    "format": "number"
+  },
+  "breakdown": {
+    "label": "By State",
+    "rows_field": "breakdown",
+    "columns": [
+      { "field": "jurisdiction", "label": "State" },
+      { "field": "amount", "label": "Amount", "format": "currency" },
+      { "field": "gallons", "label": "Gallons", "format": "number" }
+    ]
+  }
+}

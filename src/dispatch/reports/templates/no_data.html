@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<a class="back" href="{{ url_for('index') }}">&larr; Back</a>
+<h2>{{ title }}</h2>
+<p class="empty">No data behind this report yet for {{ period_label }} — nothing to show, and nothing fabricated.</p>
+{% endblock %}
