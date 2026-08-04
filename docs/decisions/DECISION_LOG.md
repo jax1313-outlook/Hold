@@ -226,9 +226,38 @@ the decision, not a substitute for it.
 one bookmark: `/` (dashboard), `/queue` and `/reports` (mounted,
 unmodified), and `/pilot` (new, with the real Process Inbox button).
 
+### WorksheetEngine Preview Mode merge approval — APPROVED, 2026-08-04
+
+Preview Mode itself was approved in principle earlier the same day,
+against `docs/ifta-clerk/IFTA_CLERK_BLUEPRINT_v1.md` section 6.1, under
+six explicit conditions: no database writes, no worksheet IDs, no audit
+status changes, no approval path activation, clearly labeled PREVIEW,
+cannot be mistaken for a filed worksheet. Per Hard Approval Gate #7, Mike
+reviewed the walkthrough
+(`docs/ifta-clerk/WORKSHEET_PREVIEW_MODE_WALKTHROUGH_REPORT_v1.md` — a
+genuinely fresh database producing a clean error instead of a crash, real
+data seeded through real entry points, `preview()`'s output independently
+verified by hand and matched exactly, both designed failure paths fired
+for real, and a real `build()` run for direct comparison confirming
+identical numbers and zero rows left behind by `preview()` before or
+after) and, when asked whether he was satisfied and wanted it merged,
+replied "yes, go ahead and merge" — a direct, affirmative instruction
+responding to that specific question, not silence or a timeout.
+
+**Unblocked:** `build/ifta-worksheet-preview` merges into `integration` —
+`dispatch.ifta.worksheet.preview()`, a live, non-persisting estimate
+sharing computation spec 3.5's arithmetic with `build()` via new
+module-level `_aggregate_mileage`/`_aggregate_fuel`/
+`_compute_worksheet_lines` helpers. As a direct consequence of that
+refactor, `build()` also stopped crashing with a raw
+`sqlite3.OperationalError` on a genuinely fresh database — the bug class
+`docs/ifta-ui/NOTES.md` (unmerged `build/ifta-ui` branch) already flagged
+as needing a dedicated fix in `worksheet.py` itself.
+
 ## Open
 
 (none — all four originally-held items, the Lane A, Lane B, Lane C, and
 Lane D merge approvals, the Lane D deferred fidelity gate, the Evidence
-Record v1.1 amendment, and the Dispatch Shell merge approval above, are
-resolved as of 2026-08-04)
+Record v1.1 amendment, the Dispatch Shell merge approval, and the
+WorksheetEngine Preview Mode merge approval above, are resolved as of
+2026-08-04)
