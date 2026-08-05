@@ -206,3 +206,89 @@ condition ("uncomment when Mike supplies a real API key and this
 lane's extraction is actually exercised live") is now true. No
 automated test in the suite makes a real API call; that stays a
 live, human-run check by design, not something CI depends on.
+
+## Session 4 (2026-08-05) — Archive Package: closing the evidence-refs gap
+
+Branch: `build/archive-package-evidence-refs`. Item 3 of Mike's 5-item
+work list ("Archive Package generation"). No blueprint document defines
+"Archive Package" for IFTA specifically — investigation found
+`package.py`'s `attempt_seal()` already writes a sealed bundle to
+`ARCHIVE\IFTA\<quarter>\<id>.json`, and its own docstring has always
+promised "worksheet + lines + evidence refs," but the actual code wrote
+`{worksheet, lines, sealed_at, approved_by, approval_note}` — no
+evidence refs at all. `ifta_worksheet_lines` were jurisdiction-level
+aggregates only, with nothing linking a line's numbers back to the
+specific `mileage_records`/`fuel_records`/`evidence_records` that
+produced them. Mike confirmed this was the right scope ("close the
+evidence-refs gap") before any code was written.
+
+### Design
+
+Refs are captured at `WorksheetEngine.build()` time, not re-derived at
+seal time — if new mileage/fuel got entered between build and
+submit/approve/seal (a real gap; that pipeline takes real time), a
+seal-time re-query could link records that don't actually match the
+frozen numbers. Capturing at build time keeps provenance exactly as
+frozen as `total_net_tax` already is, matching `ifta_worksheet_lines`'
+own documented "computation snapshot, INSERT-only" doctrine.
+
+### Built
+
+- `src/dispatch/ifta/db.py`: one new column,
+  `ifta_worksheet_lines.related_record_ids TEXT NOT NULL DEFAULT '[]'`
+  — mirrors the exact JSON-in-TEXT convention `ifta_exceptions
+  .related_record_ids` already uses (`json.dumps` on write, `json.loads`
+  on read), not a new pattern.
+- `src/dispatch/ifta/worksheet.py`: `_aggregate_mileage`/
+  `_aggregate_fuel` (shared by `build()` and `preview()`) now also
+  collect which `mileage_record_id`/`fuel_record_id` contributed to
+  each jurisdiction's totals, alongside the sums they already computed
+  — purely additive provenance capture, computation spec 3.5's
+  arithmetic itself untouched. `_compute_worksheet_lines` threads these
+  into each line's new `related_record_ids` dict
+  (`{"mileage_record_ids": [...], "fuel_record_ids": [...]}`).
+  `preview()` gets the same shape for consistency (both functions stay
+  identical) but still never persists anything.
+- `src/dispatch/ifta/package.py`: `_resolve_line_evidence()` — for each
+  sealed line, resolves `mileage_record_ids` into full mileage records
+  (self-attested: unit, period, miles, source, `entered_by` — no source
+  document to link, the record itself is the attestation) and
+  `fuel_record_ids` into full fuel records plus their linked
+  `evidence_records` row (`archive_path`, `file_hash`, `document_type`
+  — the real registered document). A record that somehow doesn't
+  resolve is skipped, not raised — nothing in this codebase deletes
+  these rows, and a seal already granted by real approval must never be
+  blocked by a bundling concern. `attempt_seal()`'s bundle now carries
+  this as an `evidence` key per line.
+- Tests: 3 new (1 in `tests/lane_c/test_worksheet.py` proving
+  `related_record_ids` matches the real record IDs per jurisdiction; 2
+  in `tests/lane_c/test_package.py` — one proving the sealed bundle's
+  evidence resolves real mileage/fuel/evidence rows correctly by hand,
+  one proving the "evidence row doesn't resolve" path degrades to
+  `None` rather than raising, using the existing `insert_fuel_record`
+  fixture's `'ev_fixture'` placeholder, which most tests never actually
+  back with a real `evidence_records` row — the exact case this needed
+  to handle gracefully). `tests/lane_c/conftest.py`'s
+  `insert_mileage_record` now returns the id it inserts (additive;
+  nothing captured its return value before). Full suite: 460 passed
+  (was 457).
+- `src/dispatch/ifta/README.md`: documented the bundle's real `evidence`
+  shape and when it's captured.
+- **Manual smoke test against the real pipeline** (throwaway sandbox,
+  deleted after): real fuel CSV through the real `IntakePipeline`, a
+  real mileage entry via `tools/mileage_worksheet.py`, a real rate, a
+  real `build()`/`run_all_detectors()`/`submit_for_approval()`/
+  `queue.approve()`/`attempt_seal()` pipeline. Independently confirmed
+  by hand, reading the sealed bundle file directly: the fuel record's
+  vendor, date, and gallons matched the source CSV exactly; its
+  `evidence_record.archive_path` and `file_hash` were real, resolved
+  values; the mileage record's `entered_by`/`miles`/`period` matched
+  the CLI command exactly.
+
+### Boundary — unchanged
+
+Still exactly one file, same path (`ARCHIVE\IFTA\<quarter>\<id>.json`),
+same trigger (`attempt_seal()`). No new artifact type, no new button,
+no new write action — this is a correctness fix to an existing write
+path. No current UI displays worksheet lines at all, so nothing visible
+changed; only the bundle file's own content did.

@@ -134,6 +134,19 @@ status. Like every other lane, there is no background process polling
 for approvals — a human or a scheduled task calls `attempt_seal`
 explicitly, after the fact.
 
+Each line in the bundle carries a real `evidence` block, not just
+jurisdiction totals: the `mileage_records`/`fuel_records` (the latter
+with its linked `evidence_records` row — `archive_path`, `file_hash`,
+`document_type`) that actually fed that jurisdiction's numbers.
+Captured once, at `build()` time (`worksheet.py`'s
+`_aggregate_mileage`/`_aggregate_fuel`), and frozen into
+`ifta_worksheet_lines.related_record_ids` alongside the numbers
+themselves — never re-derived at seal time, so the refs can't drift
+from what was actually computed even if more mileage/fuel gets entered
+before approval comes through. Added 2026-08-05, closing a real gap:
+this docstring's "worksheet + lines + evidence refs" promise predates
+the evidence refs actually existing.
+
 ## Fixture rate data
 
 `rates.py`'s fixture rows exist for this lane's own testing only, tagged

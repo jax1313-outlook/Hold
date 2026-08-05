@@ -51,7 +51,8 @@ CREATE TABLE IF NOT EXISTS ifta_worksheet_lines (
     tax_paid_gallons REAL NOT NULL,
     rate REAL NOT NULL,
     surcharge REAL,
-    net_tax REAL NOT NULL
+    net_tax REAL NOT NULL,
+    related_record_ids TEXT NOT NULL DEFAULT '[]'
 );
 
 CREATE TABLE IF NOT EXISTS ifta_exceptions (
