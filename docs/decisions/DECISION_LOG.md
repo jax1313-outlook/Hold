@@ -529,15 +529,43 @@ path), `worksheet.live_fleet_mpg_estimate()`, and
 `POST /record-mileage`, the app's fourth write-capable route. This
 closes all five items of Mike's original work list.
 
+### IFTA Clerk Blueprint Amendment 5 reconciliation merge approval — APPROVED, 2026-08-05
+
+Mike directed reconciling the blueprint against everything built this
+session. Amendment 5 updates sections 3, 4, 7, 9, 11, 12, and 13 to
+match reality: the Review Dashboard (Phase 3) now the app's actual
+primary screen, not a design; Prepare This Quarter (Phase 5) built with
+its approved modification (submission stays separate) preserved in the
+roadmap text, not just the build notes; a new, previously-unnumbered
+Phase 5.5 for the mileage entry UI; Phase 6 updated from "future, named
+only" to "in progress — one of three types built" (Recommended Payment
+Amount); the Archive Package evidence-refs gap closed; vision
+extraction's status corrected to "exercised live once, real bug found
+and fixed" — explicitly distinguished from §9's formal, still-undone
+Stage 1 trial, not overclaimed as satisfying it; and open questions 1
+(quarter-end trigger) and 2 (mileage's future) closed, with question 6
+(API key ownership) updated but left open since a disposable testing
+key doesn't satisfy a standing production credential. One pre-existing
+cross-reference error (§6 mislabeling the Prepare This Quarter trigger
+"Phase 3" instead of "Phase 5") was fixed in passing. Mike reviewed the
+summary and approved the merge directly ("yes, go ahead and merge").
+
+**Unblocked:** `docs/ifta-clerk-blueprint-amendment-5` merges into
+`integration` — documentation only, no code changes. This is the
+blueprint's second reconciliation pass (see the entry above for the
+first, Amendment 4).
+
 ## Open
 
 (none — all four originally-held items, the Lane A, Lane B, Lane C, and
 Lane D merge approvals, the Lane D deferred fidelity gate, the Evidence
 Record v1.1 amendment, the Dispatch Shell merge approval, the
 WorksheetEngine Preview Mode merge approval, the Category 2 Live
-Indicators merge approval, the IFTA Clerk Blueprint reconciliation merge
-approval, the Review Dashboard merge approval, the Prepare This Quarter
-/ Submit for Approval merge approval, the Recommended Payment Amount
-merge approval, the OCR fenced-JSON fix merge approval, the Archive
-Package evidence-refs merge approval, and the mileage source strategy /
-mileage entry UI merge approval above, are resolved as of 2026-08-05)
+Indicators merge approval, the IFTA Clerk Blueprint Amendment 4
+reconciliation merge approval, the Review Dashboard merge approval, the
+Prepare This Quarter / Submit for Approval merge approval, the
+Recommended Payment Amount merge approval, the OCR fenced-JSON fix merge
+approval, the Archive Package evidence-refs merge approval, the mileage
+source strategy / mileage entry UI merge approval, and the IFTA Clerk
+Blueprint Amendment 5 reconciliation merge approval above, are resolved
+as of 2026-08-05)
