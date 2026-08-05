@@ -292,10 +292,43 @@ severity from its own closed vocabulary
 (`critical`/`warning`/`notice`), distinct from Queue's own priority
 vocabulary.
 
+### IFTA Clerk Blueprint reconciliation merge approval — APPROVED, 2026-08-04
+
+After both Preview Mode and Category 2 Live Indicators merged, Mike
+directed that `docs/ifta-clerk/IFTA_CLERK_BLUEPRINT_v1.md` be reconciled
+against what was actually built rather than left describing the original
+projection. Amendment 4 was written: sections 3, 6, 6.1, 7, 8, 12, and 13
+updated to reflect both features as built (not "approved in principle" /
+"recommended"), and two findings the original text didn't anticipate —
+Live Indicators shipping at 4 detectors rather than 5
+(`broken_evidence_linkage` excluded, found to write a real `audit_log`
+row and, on a hash mismatch, a real urgent Queue item, via
+`EvidenceSpine.retrieve()`), and folding the five worksheet-dependent
+detectors into Category 2 via `preview()` turning out to be its own
+explicit decision rather than the automatic unlock §8's original text
+described — recorded as two new open questions (§12.7, §12.8) rather
+than silently dropped or silently resolved.
+
+Mike replied "Approved. Merge docs/ifta-clerk-blueprint into
+integration. The blueprint now accurately reflects implemented behavior.
+Keep `broken_evidence_linkage` and worksheet-dependent detector
+integration as explicitly deferred open items." — a direct, affirmative
+instruction confirming both the reconciliation's accuracy and the merge,
+in the same message. Documentation-only change (no code); the same
+directness this project has already extended to prior doctrine and
+launch-package documents.
+
+**Unblocked:** `docs/ifta-clerk-blueprint` merges into `integration` —
+`IFTA_CLERK_BLUEPRINT_v1.md` (Amendment 4),
+`docs/governance/OCR_VISION_EXTRACTION_DOCTRINE_v1.md`, and the
+blueprint's four prior amendments, all landing in `integration` for the
+first time together.
+
 ## Open
 
 (none — all four originally-held items, the Lane A, Lane B, Lane C, and
 Lane D merge approvals, the Lane D deferred fidelity gate, the Evidence
 Record v1.1 amendment, the Dispatch Shell merge approval, the
-WorksheetEngine Preview Mode merge approval, and the Category 2 Live
-Indicators merge approval above, are resolved as of 2026-08-04)
+WorksheetEngine Preview Mode merge approval, the Category 2 Live
+Indicators merge approval, and the IFTA Clerk Blueprint reconciliation
+merge approval above, are resolved as of 2026-08-04)
