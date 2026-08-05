@@ -461,6 +461,42 @@ driver, odometer, card last-4, receipt number, 0.97 confidence).
 stated condition (a real key supplied, extraction exercised live) is
 true.
 
+### Archive Package evidence-refs merge approval — APPROVED, 2026-08-05
+
+Mike directed item 3 of his 5-item work list ("Archive Package
+generation"). No blueprint document defines "Archive Package" for IFTA
+specifically; investigation found `dispatch.ifta.package.attempt_seal()`
+already writes a sealed bundle to `ARCHIVE\IFTA\<quarter>\<id>.json`
+whose own docstring has always promised "worksheet + lines + evidence
+refs," but the actual bundle carried no evidence at all —
+`ifta_worksheet_lines` were jurisdiction aggregates with nothing linking
+a line's numbers back to the mileage/fuel/evidence records that produced
+them. Mike confirmed the scope directly ("close the evidence-refs gap")
+before any code was written, then approved the presented design
+("yes, go ahead and build it").
+
+Refs are captured at `WorksheetEngine.build()` time, not re-derived at
+seal time, so they can't drift from what was actually computed if more
+data gets entered before approval completes — matching
+`ifta_worksheet_lines`'s own documented "computation snapshot,
+INSERT-only" doctrine. Live-verified in a throwaway sandbox
+(`docs/lanes/C/NOTES.md` Session 4): a real fuel CSV through the real
+intake pipeline, a real mileage entry, a real
+build/submit/approve/seal pipeline, then the sealed bundle file read
+directly off disk and checked by hand — the fuel record's vendor, date,
+and gallons matched the source CSV exactly, its linked
+`evidence_record`'s `archive_path`/`file_hash` were real resolved
+values, and the mileage record's `entered_by`/`miles`/`period` matched
+the CLI command exactly. Mike then approved the merge directly ("Merge
+Yes").
+
+**Unblocked:** `build/archive-package-evidence-refs` merges into
+`integration` — the new `ifta_worksheet_lines.related_record_ids`
+column, `_resolve_line_evidence()` in `package.py`, and the
+`_aggregate_mileage`/`_aggregate_fuel` provenance capture in
+`worksheet.py`, all purely additive to computation spec 3.5's
+arithmetic.
+
 ## Open
 
 (none — all four originally-held items, the Lane A, Lane B, Lane C, and
@@ -470,5 +506,6 @@ WorksheetEngine Preview Mode merge approval, the Category 2 Live
 Indicators merge approval, the IFTA Clerk Blueprint reconciliation merge
 approval, the Review Dashboard merge approval, the Prepare This Quarter
 / Submit for Approval merge approval, the Recommended Payment Amount
-merge approval, and the OCR fenced-JSON fix merge approval above, are
-resolved as of 2026-08-05)
+merge approval, the OCR fenced-JSON fix merge approval, and the Archive
+Package evidence-refs merge approval above, are resolved as of
+2026-08-05)
