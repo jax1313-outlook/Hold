@@ -7,6 +7,13 @@ tax_paid_gallons_J × rate_J (+ a surcharge line when the rate table
 carries one). Rates come only from the versioned rate_tables; the
 worksheet stores which version it used. No fabricated rate is ever
 substituted for a missing one — MissingRateError instead.
+
+WorksheetEngine.build() computes this and persists it. The module-level
+preview() below computes the identical thing from a read-only connection
+and never persists anything — approved in principle 2026-08-04
+(IFTA_CLERK_BLUEPRINT_v1 section 6.1). Both call the same
+_aggregate_mileage/_aggregate_fuel/_compute_worksheet_lines so the
+arithmetic itself exists in exactly one place.
 """
 from __future__ import annotations
 
@@ -65,6 +72,204 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
+def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (table_name,)
+    ).fetchone()
+    return row is not None
+
+
+def _aggregate_mileage(conn: sqlite3.Connection, start: date, end: date) -> tuple[dict[str, float], float]:
+    """Module-level, read-only-safe: takes whichever connection the caller
+    has (WorksheetEngine's read_only_conn, or preview()'s own), never a
+    self reference. A genuinely fresh database with no mileage ever
+    recorded has no mileage_records table at all -- that's an absence of
+    data, not an error, so it reads back as (empty, 0.0) rather than a raw
+    sqlite3.OperationalError."""
+    if not _table_exists(conn, "mileage_records"):
+        return {}, 0.0
+    rows = conn.execute(
+        "SELECT jurisdiction, miles, period_start, period_end FROM mileage_records"
+    ).fetchall()
+    by_jurisdiction: dict[str, float] = {}
+    total = 0.0
+    for row in rows:
+        period_start = date.fromisoformat(row["period_start"])
+        period_end = date.fromisoformat(row["period_end"])
+        if period_start >= start and period_end <= end:
+            by_jurisdiction[row["jurisdiction"]] = by_jurisdiction.get(row["jurisdiction"], 0.0) + row["miles"]
+            total += row["miles"]
+    return by_jurisdiction, total
+
+
+def _aggregate_fuel(
+    conn: sqlite3.Connection, start: date, end: date, fuel_type: str
+) -> tuple[dict[str, float], float]:
+    """Same reasoning as _aggregate_mileage: no fuel_records table yet
+    reads back as no fuel recorded yet, not a crash."""
+    if not _table_exists(conn, "fuel_records"):
+        return {}, 0.0
+    rows = conn.execute(
+        """
+        SELECT jurisdiction, gallons_normalized, purchase_date, tractor_or_reefer
+        FROM fuel_records WHERE fuel_type = ?
+        """,
+        (fuel_type,),
+    ).fetchall()
+    by_jurisdiction: dict[str, float] = {}
+    total = 0.0
+    for row in rows:
+        purchase_date = date.fromisoformat(row["purchase_date"])
+        # tractor_or_reefer == 'tractor' should always be true here (the
+        # router never creates a reefer-flagged fuel_record — see
+        # router.ReeferMisroutedError) but this filter is the worksheet
+        # engine's own defense-in-depth, matching exception #9's intent.
+        if start <= purchase_date <= end and row["tractor_or_reefer"] == "tractor":
+            by_jurisdiction[row["jurisdiction"]] = (
+                by_jurisdiction.get(row["jurisdiction"], 0.0) + row["gallons_normalized"]
+            )
+            total += row["gallons_normalized"]
+    return by_jurisdiction, total
+
+
+def _compute_worksheet_lines(
+    conn: sqlite3.Connection,
+    *,
+    quarter: str,
+    fuel_type: str,
+    rate_table_version: str,
+    miles_by_jurisdiction: dict[str, float],
+    total_miles: float,
+    gallons_by_jurisdiction: dict[str, float],
+    total_tractor_gallons: float,
+) -> tuple[float, list[dict[str, Any]]]:
+    """Computation spec 3.5 itself, verbatim -- the one place fleet_mpg,
+    taxable_gallons, and net_tax get computed. build() (which persists the
+    result) and preview() (which does not) both call this, so the
+    arithmetic exists exactly once rather than being reimplemented for the
+    preview path. conn is only ever read from here (rate lookups) --
+    build() passes its write connection, preview() its read-only one, and
+    either is safe against this function's own access pattern."""
+    if total_tractor_gallons <= 0:
+        raise InsufficientDataError(
+            f"no tractor {fuel_type} gallons recorded for {quarter}; cannot compute fleet_mpg"
+        )
+    if total_miles <= 0:
+        raise InsufficientDataError(
+            f"no mileage recorded within {quarter}; cannot compute fleet_mpg"
+        )
+    fleet_mpg = total_miles / total_tractor_gallons
+
+    jurisdictions = sorted(set(miles_by_jurisdiction) | set(gallons_by_jurisdiction))
+    missing_rates: list[str] = []
+    lines: list[dict[str, Any]] = []
+
+    for jurisdiction in jurisdictions:
+        miles_j = miles_by_jurisdiction.get(jurisdiction, 0.0)
+        tax_paid_gallons_j = gallons_by_jurisdiction.get(jurisdiction, 0.0)
+        taxable_gallons_j = miles_j / fleet_mpg
+
+        rate_row = rates.get_rate(
+            conn,
+            jurisdiction=jurisdiction,
+            quarter=quarter,
+            fuel_type=fuel_type,
+            source_version=rate_table_version,
+        )
+        if rate_row is None:
+            missing_rates.append(jurisdiction)
+            continue
+
+        rate = rate_row["rate"]
+        surcharge = rate_row.get("surcharge")
+        net_tax = taxable_gallons_j * rate - tax_paid_gallons_j * rate
+        if surcharge:
+            net_tax += taxable_gallons_j * surcharge
+
+        lines.append(
+            {
+                "jurisdiction": jurisdiction,
+                "miles": miles_j,
+                "taxable_gallons": taxable_gallons_j,
+                "tax_paid_gallons": tax_paid_gallons_j,
+                "rate": rate,
+                "surcharge": surcharge,
+                "net_tax": net_tax,
+            }
+        )
+
+    if missing_rates:
+        raise MissingRateError(missing_rates, quarter, fuel_type, rate_table_version)
+
+    return fleet_mpg, lines
+
+
+def preview(read_only_conn: sqlite3.Connection, *, quarter: str, fuel_type: str, rate_table_version: str) -> dict[str, Any]:
+    """A live, non-persisting estimate of what build() would produce right
+    now if called this instant -- approved in principle 2026-08-04
+    (IFTA_CLERK_BLUEPRINT_v1 §6.1), under six conditions. Each is
+    structural here, not merely a convention this function happens to
+    follow:
+
+    1. No database writes. preview() is a module-level function taking
+       only a read-only connection as its sole parameter -- there is no
+       write-capable connection anywhere in its scope to write with.
+    2. No worksheet IDs. new_ulid() is never called on this path.
+    3. No audit status changes. Nothing here touches ifta_worksheets or
+       ifta_worksheet_lines, and install_schema() is never called against
+       a write connection here.
+    4. No approval path activation. preview() never receives or
+       constructs a QueueStore; dispatch.ifta.package is never imported
+       here.
+    5. Clearly labeled PREVIEW. The returned dict carries
+       "status": "preview" and "is_preview": True.
+    6. Cannot be mistaken for a filed worksheet. Follows directly from 2,
+       3, and 5 together: no id, no queue link, and an explicit label a
+       caller would have to deliberately discard.
+
+    Shares _aggregate_mileage/_aggregate_fuel/_compute_worksheet_lines
+    with build() so computation spec 3.5 exists in exactly one place --
+    this function only ever skips the INSERTs build() does afterward.
+
+    rate_tables not existing yet (no rate has ever been entered against
+    this database) is data that isn't there yet, same as fuel/mileage
+    with no table -- InsufficientDataError, not a raw crash from a
+    read-only connection hitting install_schema()'s CREATE TABLE."""
+    if not _table_exists(read_only_conn, "rate_tables"):
+        raise InsufficientDataError(
+            f"no rate table exists yet for {rate_table_version!r} -- no rate has "
+            "ever been entered against this database"
+        )
+
+    start, end = quarter_bounds(quarter)
+    miles_by_jurisdiction, total_miles = _aggregate_mileage(read_only_conn, start, end)
+    gallons_by_jurisdiction, total_tractor_gallons = _aggregate_fuel(read_only_conn, start, end, fuel_type)
+
+    fleet_mpg, lines = _compute_worksheet_lines(
+        read_only_conn,
+        quarter=quarter,
+        fuel_type=fuel_type,
+        rate_table_version=rate_table_version,
+        miles_by_jurisdiction=miles_by_jurisdiction,
+        total_miles=total_miles,
+        gallons_by_jurisdiction=gallons_by_jurisdiction,
+        total_tractor_gallons=total_tractor_gallons,
+    )
+    total_net_tax = sum(line["net_tax"] for line in lines)
+
+    return {
+        "status": "preview",
+        "is_preview": True,
+        "quarter": quarter,
+        "fuel_type": fuel_type,
+        "rate_table_version": rate_table_version,
+        "fleet_mpg": fleet_mpg,
+        "total_net_tax": total_net_tax,
+        "lines": lines,
+        "generated_at": _utc_now_iso(),
+    }
+
+
 class WorksheetEngine:
     """write_conn owns the ifta_* tables (read-write); read_only_conn is a
     SQLite mode=ro connection to the same database file, used for every
@@ -79,59 +284,19 @@ class WorksheetEngine:
     def build(self, *, quarter: str, fuel_type: str, rate_table_version: str) -> dict[str, Any]:
         start, end = quarter_bounds(quarter)
 
-        miles_by_jurisdiction, total_miles = self._aggregate_mileage(start, end)
-        gallons_by_jurisdiction, total_tractor_gallons = self._aggregate_fuel(start, end, fuel_type)
+        miles_by_jurisdiction, total_miles = _aggregate_mileage(self._ro_conn, start, end)
+        gallons_by_jurisdiction, total_tractor_gallons = _aggregate_fuel(self._ro_conn, start, end, fuel_type)
 
-        if total_tractor_gallons <= 0:
-            raise InsufficientDataError(
-                f"no tractor {fuel_type} gallons recorded for {quarter}; cannot compute fleet_mpg"
-            )
-        if total_miles <= 0:
-            raise InsufficientDataError(
-                f"no mileage recorded within {quarter}; cannot compute fleet_mpg"
-            )
-        fleet_mpg = total_miles / total_tractor_gallons
-
-        jurisdictions = sorted(set(miles_by_jurisdiction) | set(gallons_by_jurisdiction))
-        missing_rates: list[str] = []
-        lines: list[dict[str, Any]] = []
-
-        for jurisdiction in jurisdictions:
-            miles_j = miles_by_jurisdiction.get(jurisdiction, 0.0)
-            tax_paid_gallons_j = gallons_by_jurisdiction.get(jurisdiction, 0.0)
-            taxable_gallons_j = miles_j / fleet_mpg
-
-            rate_row = rates.get_rate(
-                self._conn,
-                jurisdiction=jurisdiction,
-                quarter=quarter,
-                fuel_type=fuel_type,
-                source_version=rate_table_version,
-            )
-            if rate_row is None:
-                missing_rates.append(jurisdiction)
-                continue
-
-            rate = rate_row["rate"]
-            surcharge = rate_row.get("surcharge")
-            net_tax = taxable_gallons_j * rate - tax_paid_gallons_j * rate
-            if surcharge:
-                net_tax += taxable_gallons_j * surcharge
-
-            lines.append(
-                {
-                    "jurisdiction": jurisdiction,
-                    "miles": miles_j,
-                    "taxable_gallons": taxable_gallons_j,
-                    "tax_paid_gallons": tax_paid_gallons_j,
-                    "rate": rate,
-                    "surcharge": surcharge,
-                    "net_tax": net_tax,
-                }
-            )
-
-        if missing_rates:
-            raise MissingRateError(missing_rates, quarter, fuel_type, rate_table_version)
+        fleet_mpg, lines = _compute_worksheet_lines(
+            self._conn,
+            quarter=quarter,
+            fuel_type=fuel_type,
+            rate_table_version=rate_table_version,
+            miles_by_jurisdiction=miles_by_jurisdiction,
+            total_miles=total_miles,
+            gallons_by_jurisdiction=gallons_by_jurisdiction,
+            total_tractor_gallons=total_tractor_gallons,
+        )
 
         total_net_tax = sum(line["net_tax"] for line in lines)
         worksheet_id = new_ulid()
@@ -181,42 +346,3 @@ class WorksheetEngine:
         ).fetchall()
         worksheet["lines"] = [dict(line) for line in lines]
         return worksheet
-
-    def _aggregate_mileage(self, start: date, end: date) -> tuple[dict[str, float], float]:
-        rows = self._ro_conn.execute(
-            "SELECT jurisdiction, miles, period_start, period_end FROM mileage_records"
-        ).fetchall()
-        by_jurisdiction: dict[str, float] = {}
-        total = 0.0
-        for row in rows:
-            period_start = date.fromisoformat(row["period_start"])
-            period_end = date.fromisoformat(row["period_end"])
-            if period_start >= start and period_end <= end:
-                by_jurisdiction[row["jurisdiction"]] = by_jurisdiction.get(row["jurisdiction"], 0.0) + row["miles"]
-                total += row["miles"]
-        return by_jurisdiction, total
-
-    def _aggregate_fuel(
-        self, start: date, end: date, fuel_type: str
-    ) -> tuple[dict[str, float], float]:
-        rows = self._ro_conn.execute(
-            """
-            SELECT jurisdiction, gallons_normalized, purchase_date, tractor_or_reefer
-            FROM fuel_records WHERE fuel_type = ?
-            """,
-            (fuel_type,),
-        ).fetchall()
-        by_jurisdiction: dict[str, float] = {}
-        total = 0.0
-        for row in rows:
-            purchase_date = date.fromisoformat(row["purchase_date"])
-            # tractor_or_reefer == 'tractor' should always be true here (the
-            # router never creates a reefer-flagged fuel_record — see
-            # router.ReeferMisroutedError) but this filter is the worksheet
-            # engine's own defense-in-depth, matching exception #9's intent.
-            if start <= purchase_date <= end and row["tractor_or_reefer"] == "tractor":
-                by_jurisdiction[row["jurisdiction"]] = (
-                    by_jurisdiction.get(row["jurisdiction"], 0.0) + row["gallons_normalized"]
-                )
-                total += row["gallons_normalized"]
-        return by_jurisdiction, total

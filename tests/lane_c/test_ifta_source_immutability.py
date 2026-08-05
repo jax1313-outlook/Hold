@@ -34,7 +34,20 @@ def test_no_update_or_delete_against_source_records():
 
 
 def test_worksheet_engine_reads_source_tables_through_the_read_only_connection():
+    """_aggregate_mileage/_aggregate_fuel are module-level and generic over
+    whichever connection they're handed (build() and preview() share them)
+    -- so the read-only guarantee is no longer one literal
+    'self._ro_conn.execute' substring, it's that every call site in this
+    file passes a read-only connection, never the write one. Checked
+    exhaustively rather than by example."""
     text = (IFTA_SRC_DIR / "worksheet.py").read_text(encoding="utf-8")
-    assert "self._ro_conn.execute" in text
     for table in _SOURCE_TABLES:
         assert f"FROM {table}" in text
+
+    call_sites = re.findall(r"(?<!def )_aggregate_(?:mileage|fuel)\(\s*([\w\.]+)", text)
+    assert len(call_sites) >= 2, f"expected calls to both aggregators, found {call_sites}"
+    for first_arg in call_sites:
+        assert first_arg in ("self._ro_conn", "read_only_conn"), (
+            f"_aggregate_mileage/_aggregate_fuel called with {first_arg!r} instead of a "
+            "read-only connection -- source-immutability would no longer be enforced"
+        )

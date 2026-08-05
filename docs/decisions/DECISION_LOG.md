@@ -226,9 +226,76 @@ the decision, not a substitute for it.
 one bookmark: `/` (dashboard), `/queue` and `/reports` (mounted,
 unmodified), and `/pilot` (new, with the real Process Inbox button).
 
+### WorksheetEngine Preview Mode merge approval — APPROVED, 2026-08-04
+
+Preview Mode itself was approved in principle earlier the same day,
+against `docs/ifta-clerk/IFTA_CLERK_BLUEPRINT_v1.md` section 6.1, under
+six explicit conditions: no database writes, no worksheet IDs, no audit
+status changes, no approval path activation, clearly labeled PREVIEW,
+cannot be mistaken for a filed worksheet. Per Hard Approval Gate #7, Mike
+reviewed the walkthrough
+(`docs/ifta-clerk/WORKSHEET_PREVIEW_MODE_WALKTHROUGH_REPORT_v1.md` — a
+genuinely fresh database producing a clean error instead of a crash, real
+data seeded through real entry points, `preview()`'s output independently
+verified by hand and matched exactly, both designed failure paths fired
+for real, and a real `build()` run for direct comparison confirming
+identical numbers and zero rows left behind by `preview()` before or
+after) and, when asked whether he was satisfied and wanted it merged,
+replied "yes, go ahead and merge" — a direct, affirmative instruction
+responding to that specific question, not silence or a timeout.
+
+**Unblocked:** `build/ifta-worksheet-preview` merges into `integration` —
+`dispatch.ifta.worksheet.preview()`, a live, non-persisting estimate
+sharing computation spec 3.5's arithmetic with `build()` via new
+module-level `_aggregate_mileage`/`_aggregate_fuel`/
+`_compute_worksheet_lines` helpers. As a direct consequence of that
+refactor, `build()` also stopped crashing with a raw
+`sqlite3.OperationalError` on a genuinely fresh database — the bug class
+`docs/ifta-ui/NOTES.md` (unmerged `build/ifta-ui` branch) already flagged
+as needing a dedicated fix in `worksheet.py` itself.
+
+### Category 2 Live Indicators merge approval — APPROVED, 2026-08-04
+
+Building on Preview Mode's approval earlier the same day, Mike approved
+Live Indicators in principle against `docs/ifta-clerk/IFTA_CLERK_BLUEPRINT_v1.md`
+section 8, directing: proceed with 4 of the 5 originally-scoped
+worksheet-free detectors, add severity classification, document
+explicitly that Live Indicators remain informational only with no
+workflow side effects, and maintain the same five structural protections
+as Preview Mode. Two scope questions were raised directly during design
+rather than assumed: whether to fold in the 5 worksheet-dependent
+detectors now that `preview()` exists (Mike: no, keep this build at the
+original scope, treat that as a separate follow-on), and how to handle
+`broken_evidence_linkage` — found during design to write a real
+`audit_log` row on every call via `EvidenceSpine.retrieve()`, and a real
+urgent Queue item on a hash mismatch (Mike: exclude it from this build).
+
+Per Hard Approval Gate #7, Mike reviewed the walkthrough
+(`docs/ifta-clerk/LIVE_INDICATORS_WALKTHROUGH_REPORT_v1.md` — a
+genuinely fresh database producing empty findings instead of a crash,
+real fuel data through the real CSV intake pipeline producing a real
+odometer discontinuity, `audit_log`'s pre-existing count isolated
+precisely and confirmed unchanged across repeated calls, a real
+reefer-flagged row and a real sealed-quarter straggler both firing
+correctly with their documented severities, and a cross-check against
+each detector called individually matching exactly) and, when asked
+whether he was satisfied and wanted it merged, replied "yes, go ahead and
+merge" — a direct, affirmative instruction responding to that specific
+question, not silence or a timeout.
+
+**Unblocked:** `build/ifta-live-indicators` merges into `integration` —
+`dispatch.ifta.live_indicators.live_indicators()`, calling
+`odometer_discontinuity`, `active_truck_days_no_mileage`,
+`late_arrival_closed_quarter`, and `reefer_in_propulsion` directly,
+never through `run_all_detectors()`, each finding labeled with a
+severity from its own closed vocabulary
+(`critical`/`warning`/`notice`), distinct from Queue's own priority
+vocabulary.
+
 ## Open
 
 (none — all four originally-held items, the Lane A, Lane B, Lane C, and
 Lane D merge approvals, the Lane D deferred fidelity gate, the Evidence
-Record v1.1 amendment, and the Dispatch Shell merge approval above, are
-resolved as of 2026-08-04)
+Record v1.1 amendment, the Dispatch Shell merge approval, the
+WorksheetEngine Preview Mode merge approval, and the Category 2 Live
+Indicators merge approval above, are resolved as of 2026-08-04)
