@@ -324,11 +324,45 @@ launch-package documents.
 blueprint's four prior amendments, all landing in `integration` for the
 first time together.
 
+### Review Dashboard (Phase 3) merge approval — APPROVED, 2026-08-04
+
+Mike directed Phase 3 with new scope: the Review Dashboard becomes the
+primary user experience of the IFTA Clerk, while explicitly maintaining
+Evidence First, Read-only Workspace, Human Authority, Recommendation
+Packages Only, and no QuickBooks/DocuSign/Filing integration. The design
+(a new `dispatch.ifta_clerk` app, mounted at `/ifta-clerk`, all seven
+`IFTA_CLERK_BLUEPRINT_v1.md` section 7 panels assembled from a single
+read-only connection) was brainstormed and approved before any code, per
+this project's standing brainstorming requirement. One real finding
+surfaced and resolved during design: panel 6 (evidence links) as
+originally specced would call `EvidenceSpine.retrieve()` per record,
+writing a real `audit_log` row on every dashboard view — the same class
+of side effect already ruled out for `broken_evidence_linkage`. Raised
+directly; Mike chose a plain-reference read instead.
+
+Per Hard Approval Gate #7, Mike reviewed the walkthrough
+(`docs/ifta-clerk/REVIEW_DASHBOARD_WALKTHROUGH_REPORT_v1.md` — Shell's
+home page linking to the dashboard first and prominently, a genuinely
+fresh install producing a clean empty state, real fuel/mileage/rate data
+through real entry points with `fleet_mpg`/`net_tax` verified by hand,
+the failure path (a malformed quarter) handled cleanly, Category 1 and
+Category 2 exceptions confirmed never conflated, and zero governed side
+effects across roughly ten page loads independently confirmed via raw
+`sqlite3`) and, when asked whether he was satisfied and wanted it merged,
+replied "yes, go ahead and merge" — a direct, affirmative instruction
+responding to that specific question, not silence or a timeout.
+
+**Unblocked:** `build/ifta-clerk-review-dashboard` merges into
+`integration` — the Review Dashboard, now Mike's primary entry point for
+IFTA, mounted at `/ifta-clerk` and linked first from the Shell's home
+page.
+
 ## Open
 
 (none — all four originally-held items, the Lane A, Lane B, Lane C, and
 Lane D merge approvals, the Lane D deferred fidelity gate, the Evidence
 Record v1.1 amendment, the Dispatch Shell merge approval, the
 WorksheetEngine Preview Mode merge approval, the Category 2 Live
-Indicators merge approval, and the IFTA Clerk Blueprint reconciliation
-merge approval above, are resolved as of 2026-08-04)
+Indicators merge approval, the IFTA Clerk Blueprint reconciliation merge
+approval, and the Review Dashboard merge approval above, are resolved as
+of 2026-08-04)
