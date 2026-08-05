@@ -14,7 +14,15 @@
 
 {% if error %}
 <p class="error">{{ error }}</p>
-{% else %}
+{% endif %}
+
+{% if banner and banner.kind == "prepared" %}
+<p class="banner banner-success">Prepared: worksheet built, {{ banner.exception_count }} exception(s) found. Review below, then submit for approval when ready.</p>
+{% elif banner and banner.kind == "submitted" %}
+<p class="banner banner-success">Submitted for approval — visible in the Queue now.</p>
+{% endif %}
+
+{% if not error %}
 
 <section class="readiness">
   <span class="readiness-label">{{ data.readiness_status }}</span>
@@ -26,6 +34,15 @@
   <p class="badge badge-{{ data.tax_position.worksheet.status }}">{{ data.tax_position.worksheet.status|upper }}</p>
   <p>Total net tax: <strong>{{ "%.2f"|format(data.tax_position.worksheet.total_net_tax) }}</strong></p>
   <p>Fleet MPG: {{ "%.2f"|format(data.tax_position.worksheet.fleet_mpg) }} &middot; Rate table: {{ data.tax_position.worksheet.rate_table_version }}</p>
+  {% if data.tax_position.worksheet.status == "draft" and not data.tax_position.worksheet.queue_item_id %}
+  <form action="{{ url_for('submit') }}" method="post" class="action-form">
+    <input type="hidden" name="quarter" value="{{ quarter }}">
+    <input type="hidden" name="fuel_type" value="{{ fuel_type }}">
+    <button class="btn btn-run" type="submit">Submit for Approval</button>
+  </form>
+  {% elif data.tax_position.worksheet.status == "draft" %}
+  <p class="hint">Already submitted for approval — see the Queue.</p>
+  {% endif %}
 </div>
 {% elif data.tax_position.estimate %}
 <div class="result">
@@ -33,6 +50,11 @@
   <p>Total net tax (estimated): <strong>{{ "%.2f"|format(data.tax_position.estimate.total_net_tax) }}</strong></p>
   <p>Fleet MPG: {{ "%.2f"|format(data.tax_position.estimate.fleet_mpg) }} &middot; Rate table: {{ data.tax_position.estimate.rate_table_version }}</p>
   <p class="hint">No worksheet has been built for this quarter yet — this is a live, non-persisting estimate, not a filed worksheet.</p>
+  <form action="{{ url_for('prepare') }}" method="post" class="action-form">
+    <input type="hidden" name="quarter" value="{{ quarter }}">
+    <input type="hidden" name="fuel_type" value="{{ fuel_type }}">
+    <button class="btn btn-run" type="submit">Prepare This Quarter</button>
+  </form>
 </div>
 {% else %}
 <p class="empty">{{ data.tax_position.error or "no estimate available yet" }}</p>
