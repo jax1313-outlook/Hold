@@ -51,6 +51,32 @@ automatic, and deferred. See
 and §13 are updated below to match reality as built, not as originally
 projected.
 
+**Amendment 5 (2026-08-05):** reconciles this document against five
+more real branches built and merged since Amendment 4, all against
+`integration`: the Review Dashboard (§7, Phase 3) — no longer a design,
+the app's actual primary screen, mounted at `/ifta-clerk`; Prepare This
+Quarter (§13, Phase 5) — built with one explicit correction to this
+document's own projected text, given directly by Mike before any code
+was written: submission stays a separate, deliberate human action,
+never bundled into preparation; Recommended Payment Amount — the first
+of Phase 6's three named recommendation package types, no longer
+"future, named only"; a real gap closed in `attempt_seal()`'s sealed
+bundle, which §4's stage 10 and this document's own package-builder
+description have always said carries "evidence refs" but, until this
+session, never actually did; a real bug found and fixed in vision
+extraction (§9) via this session's first-ever live call against a real
+`ANTHROPIC_API_KEY` — Claude reads a real receipt image correctly, but
+wraps its JSON in a markdown fence the extraction code didn't handle,
+so every real scanned receipt would have quarantined unconditionally
+until fixed; and §12's mileage question (open question 2) resolved —
+manual entry, permanently, no ELD/GPS integration ever, with a real
+entry UI closing the operational gap both pilot runs independently
+found. See `docs/ifta-clerk/REVIEW_DASHBOARD_NOTES_v1.md`,
+`PREPARE_THIS_QUARTER_NOTES_v1.md`, `PAYMENT_RECOMMENDATION_NOTES_v1.md`,
+`MILEAGE_ENTRY_NOTES_v1.md`, `docs/lanes/C/NOTES.md` (Sessions 3-4), and
+`docs/decisions/DECISION_LOG.md` for the full build record and every
+merge approval. §3, §4, §7, §9, §11, §12, and §13 are updated below.
+
 ## 1. Executive Summary — IFTA Tool vs. IFTA Clerk
 
 **An IFTA Tool** moves Mike's existing clerical work from a terminal
@@ -80,14 +106,14 @@ Mike performs one review.
 | Step | Current (IFTA Tool, `build/ifta-ui`) | Target (IFTA Clerk) |
 |---|---|---|
 | Fuel evidence arrives | Mike drops a file; a CSV auto-routes, an image/PDF needs live vision credentials that don't exist yet in this environment | Same intake surface; vision extraction actually configured and exercised, so a photographed receipt becomes a real `FuelRecord` without anyone re-typing it |
-| Mileage | Mike types it into a form, one entry at a time | Still Mike's input today — this blueprint does not solve mileage (see §3) — but the *form* stops being the point; entry becomes a small, occasional task, not a session |
+| Mileage | Mike types it into a form, one entry at a time | Still Mike's input, permanently, by deliberate decision, not a gap (§3, §12.2, resolved 2026-08-05) — but the *form* is now the Clerk's own (`/record-mileage`), with a live plausibility check, so entry becomes a small, occasional task, not a session |
 | Rates | Mike types a new rate row into a form | Unchanged — rate entry is inherently a human-transcribes-a-published-number task; this was never clerical busywork the Clerk should absorb |
 | "Is the quarter ready?" | Mike has to think to ask this — nothing tells him | The Clerk knows continuously: how much data exists, what's missing, what's flagged, what's uncertain |
 | Build the worksheet | Mike clicks Build | The Clerk prepares the draft itself, at or near quarter-end, without being clicked into it line by line |
 | Review | Mike reads a worksheet detail page he had to navigate to | Mike is handed one decision package: numbers, exceptions, missing data, evidence links, confidence — everything needed to say yes or no, nothing he has to go hunting for |
 | Approve | Mike clicks Approve in the Queue | Unchanged — this is correctly a human gate already |
 | Seal | Mike clicks Seal | The Clerk seals once approval exists — Mike doesn't have to remember to come back and click a third button |
-| After sealing | Nothing | Future: a DocuSign package, an accounting notification, and a recommended payment amount, each a **proposal only** — see §11 |
+| After sealing | Nothing | A DocuSign package, an accounting notification, and a recommended payment amount, each a **proposal only** — see §11. The payment amount is built (2026-08-05); the other two remain future |
 
 ## 3. What Already Exists That the Clerk Can Be Built On
 
@@ -106,30 +132,50 @@ unexercised, and two pieces are genuine, unsolved gaps.
   only on a manual click. *Standing up that cadence is infrastructure
   (a scheduler) and is explicitly out of this blueprint's scope* (§11) —
   named here as a real prerequisite, not solved by this document.
-- **Vision extraction (`dispatch.receipt.extraction.vision`) — real but
-  unexercised.** The code path exists and is wired into the real intake
-  pipeline. It has never once run against a live credential anywhere in
-  this project: no `ANTHROPIC_API_KEY` has existed in any environment
-  this system has run in, so every attempt so far raises
-  `VisionExtractionUnavailable` and quarantines. **This is the single
-  largest gap between "IFTA Tool" and "IFTA Clerk."** Stage 2 of the
-  target workflow (§4) is not a build task — the code is already there —
-  it is a credentials-and-verification task, addressed directly in §9.
-  See `docs/governance/OCR_VISION_EXTRACTION_DOCTRINE_v1.md` for the
-  full architectural doctrine this system already follows for
-  extraction — verified, not just asserted, against the real pipeline.
+- **Vision extraction (`dispatch.receipt.extraction.vision`) — exercised
+  live once, 2026-08-05, real bug found and fixed.** For the first time
+  in this project, a real (disposable, testing-only) `ANTHROPIC_API_KEY`
+  was supplied and a real call made against a real receipt image. The
+  extraction itself works well — every field read correctly,
+  `extraction_confidence 0.97` — but the model wraps its JSON output in
+  a markdown fence despite the prompt saying "no other text," and
+  `_parse_response_text()` called `json.loads()` directly, so the
+  document quarantined anyway; **every real scanned receipt would have
+  quarantined unconditionally**, not occasionally. Fixed
+  (`_strip_markdown_fence()`), re-verified live after the fix — the
+  identical image now routes cleanly to a real `FuelRecord`. See
+  `docs/lanes/C/NOTES.md` Session 3. This is real signal the extraction
+  path works end to end, but **not** §9's formal Stage 1 trial: one
+  call, a synthesized image (not an actual photograph or scan), not the
+  5-10-real-receipt sample §9 describes, and the testing key used was
+  disposable, not a standing credential in a real deployment
+  environment. §9 is updated to reflect exactly this much progress, no
+  more. See `docs/governance/OCR_VISION_EXTRACTION_DOCTRINE_v1.md` for
+  the full architectural doctrine this system already follows for
+  extraction.
 - **Router (Lane C).** Already creates real `FuelRecord`/`ExpenseRecord`
   rows automatically the moment extraction succeeds, CSV or vision alike
   — no new logic needed for "store extracted data automatically."
-- **Mileage — the other real, unsolved gap.** Every jurisdiction-mile
-  entered into this system, in every walkthrough and every pilot run,
-  has been typed in by a human (or a build session standing in for one).
-  There is no ELD integration (explicitly out of scope, both in the
-  earlier DispatchPilot direction and unchanged here) and no other
-  source of truth for miles. The Clerk can automate everything
-  *downstream* of having real mileage data. It cannot manufacture
-  mileage data that doesn't exist. Named as an open question in §12, not
-  resolved here.
+- **Mileage — resolved, 2026-08-05: manual entry, permanently.** Closes
+  open question 2 (§12). Every jurisdiction-mile entered into this
+  system, in every walkthrough and every pilot run, has been typed in
+  by a human — and that stays true by deliberate decision, not by
+  default. There is no ELD/GPS/odometer-device integration anywhere in
+  this codebase and none is planned; this was already decided twice
+  before this resolution (the original DispatchPilot direction, and
+  this section, unchanged, for a full session) and is now a standing
+  answer, not an open question. What changed is entirely operational:
+  `POST /record-mileage` (`dispatch.ifta_clerk`) gives mileage entry a
+  real front door instead of a CLI-only tool, and
+  `worksheet.live_fleet_mpg_estimate()` surfaces a non-blocking
+  plausibility warning at entry time — the same `DEFAULT_MPG_BAND`
+  `fleet_mpg_out_of_band` already checks, just earlier, closing the
+  real operational risk both `docs/pilot/DISPATCH_PILOT_RUN_1_REPORT_v1.md`
+  and `RUN_2` independently found ("manual mileage entry is this
+  system's one input with no independent cross-check"). See
+  `docs/ifta-clerk/MILEAGE_ENTRY_NOTES_v1.md`. The Clerk still cannot
+  manufacture mileage data that doesn't exist — it can only make
+  entering real data, and catching likely mistakes in it, faster.
 - **Exception detectors (Lane C, `exceptions.py`) — ten total, and they
   split cleanly into two groups that matter a great deal for §6 and §8:**
   five (`odometer_discontinuity`, `active_truck_days_no_mileage`,
@@ -159,7 +205,13 @@ unexercised, and two pieces are genuine, unsolved gaps.
   functions — it does not need new ones. What changes is *what calls
   them and when* (§10). `WorksheetEngine`'s module also now includes
   `preview()` (§6.1), built and merged 2026-08-04 — the identical spec
-  3.5 arithmetic, computed on demand, never persisted.
+  3.5 arithmetic, computed on demand, never persisted — and, since
+  2026-08-05, `live_fleet_mpg_estimate()`, the same arithmetic again,
+  deliberately independent of any rate table, backing the mileage-entry
+  plausibility check above. `attempt_seal()`'s sealed bundle also
+  genuinely carries the "evidence refs" its own docstring has always
+  promised, as of 2026-08-05 — previously true in name only; see §4,
+  row 10, and `docs/lanes/C/NOTES.md` Session 4.
 - **Queue (Lane B).** Already the correct, only approval mechanism.
   Proven live twice now (two real pilot runs) that an IFTA approval item
   can be found and decided through the real Queue UI. Unchanged by this
@@ -179,17 +231,17 @@ already true of the real, built pipeline.
 | Stage | Status |
 |---|---|
 | 1. Evidence Spine (document arrives, hashed, audited, archived) | Built, proven, unchanged |
-| 2. OCR / Vision Extraction | Code built; **unexercised against a live credential** (§9) |
+| 2. OCR / Vision Extraction | Code built; **exercised live once, 2026-08-05 — real bug found and fixed; not yet the formal Stage 1 trial** (§3, §9) |
 | 3. Validation Layer | Built (`validators.py` — structural, sum, confidence, dedup), unchanged |
 | 4. Fuel + Expense record creation | Built (Router), unchanged |
-| 5. Mileage / jurisdiction accumulation | Fuel side built; **mileage input is an open gap** (§3, §12) |
+| 5. Mileage / jurisdiction accumulation | Fuel side built; **mileage source resolved 2026-08-05 — manual, permanently, with a real entry UI and plausibility check** (§3, §12.2, closed) |
 | 6. IFTA workspace | **Resolved — read-only, §5** |
 | 7. Exception queue | Built (ten detectors + real Queue items); **live-preview split built in §8 — 4 of 10 detectors live today, see amendment 4** |
-| 8. Review dashboard | **Not built — designed in §7** |
+| 8. Review dashboard | **Built and merged, 2026-08-05 — the app's primary screen, `dispatch.ifta_clerk` at `/ifta-clerk`** (§7) |
 | 9. Mike approval | Built, proven live twice, unchanged |
-| 10. IFTA package | Built (`attempt_seal`'s bundle), unchanged |
+| 10. IFTA package | Built (`attempt_seal`'s bundle); **now genuinely carries evidence refs, 2026-08-05 — previously promised in its own docstring but not implemented** (§3) |
 | 11. Archive | Built, unchanged |
-| 12. DocuSign / accounting handoff | **Explicitly future, recommendation packages only** (§11) |
+| 12. DocuSign / accounting handoff | **One of three named types built, 2026-08-05 — Recommended Payment Amount; the other two remain future, recommendation packages only** (§11, §13 Phase 6) |
 
 ## 5. The IFTA Workspace — Resolved
 
@@ -241,10 +293,11 @@ through the one function that happens to compute the numbers.
    the spec 3.5 arithmetic without writing anything. **Built and merged
    2026-08-04** — `dispatch.ifta.worksheet.preview()`, see §6.1.
 3. **The one real, deliberate Build — persists, exactly as it does
-   today.** When Mike (or the Phase 3 "Prepare This Quarter" trigger,
-   §10) actually decides the quarter is ready, `WorksheetEngine.build()`
-   runs for real, once, producing the real draft worksheet, real
-   exceptions, and a real audit trail — unchanged from today.
+   today.** When Mike (or the Phase 5 "Prepare This Quarter" trigger,
+   §13, built and merged 2026-08-05) actually decides the quarter is
+   ready, `WorksheetEngine.build()` runs for real, once, producing the
+   real draft worksheet, real exceptions, and a real audit trail —
+   unchanged from today.
 
 **Closing moment 2 — built, 2026-08-04, per the recommendation below,
 implemented as originally proposed.** A module-level `preview()`
@@ -327,18 +380,25 @@ This satisfies all six conditions by construction, not by convention —
 each is a structural property of what the function has access to and
 what shape it returns, not a rule the code merely promises to follow.
 
-## 7. Review Dashboard
+## 7. Review Dashboard — built and merged, 2026-08-05
 
-One screen, one quarter (and, matching the worksheet engine's own
-granularity, one fuel type), assembled entirely from existing sources
-per §5's resolution. Seven panels:
+No longer a design. `dispatch.ifta_clerk`, mounted at `/ifta-clerk`,
+linked first and prominently from the Shell's home page — the app's
+actual primary screen now, exactly as this document's §1 envisioned.
+See `docs/ifta-clerk/REVIEW_DASHBOARD_NOTES_v1.md` and
+`REVIEW_DASHBOARD_WALKTHROUGH_REPORT_v1.md`. One screen, one quarter
+(and, matching the worksheet engine's own granularity, one fuel type),
+assembled entirely from existing sources per §5's resolution. Seven
+panels, all built:
 
 1. **Readiness status** — a single rollup label ("ready to prepare" /
    "N exceptions open" / "M records below confidence threshold" /
    "missing mileage for N truck-days"), computed from the panels below,
    still read-only, still no domain judgment — the one genuinely new
    piece of logic on this screen, and a small one.
-2. **Miles by jurisdiction** — `mileage_records`, already real.
+2. **Miles by jurisdiction** — `mileage_records`, already real. As of
+   2026-08-05, this panel also hosts mileage entry itself
+   (`POST /record-mileage`) — see §3's mileage resolution and §12.2.
 3. **Fuel by jurisdiction** — `fuel_records`, already real (the same
    data Fuel Spend already shows, filtered to the quarter).
 4. **Exceptions and missing data** — the full detail is §8; this panel
@@ -352,14 +412,20 @@ per §5's resolution. Seven panels:
    re-verification, the exact pattern Lane B's Queue detail page already
    uses for evidence previews. Reused directly, not reimplemented.
 7. **Estimated tax position** — before a real worksheet exists, §6's
-   live estimate, now built (`preview()`, §6.1) and ready to call; after
-   one exists, Reports' own pattern — `total_net_tax` read exactly as
-   stored, never recomputed. Never both at once, per §6. This panel
-   itself — the dashboard screen that would call `preview()` — is not
-   built; that's Phase 3 (§13), separate from the function it would call.
+   live estimate (`preview()`, §6.1); after one exists, Reports' own
+   pattern — `total_net_tax` read exactly as stored, never recomputed.
+   Never both at once, per §6. Once a worksheet is **sealed**, this
+   panel also shows the real Recommended Payment Amount if one has been
+   generated (§13 Phase 6), or a button to generate one — see
+   `docs/ifta-clerk/PAYMENT_RECOMMENDATION_NOTES_v1.md`.
 
 All seven fit inside the read-only, no-recomputation boundary Lane D's
-charter already established. None of them requires a new writer.
+charter already established. None of the seven panels themselves
+required a new writer; the dashboard's four write actions
+(`/prepare`, `/submit`, `/recommend-payment`, `/record-mileage`) are
+deliberately separate from `dashboard.py`, which stays exactly as
+read-only as originally designed — see §13 Phases 5-6 and the mileage
+resolution above.
 
 ## 8. Exception Dashboard
 
@@ -434,24 +500,39 @@ credential this environment does not have and cannot obtain. What
 follows is the plan for when one exists, not an attempt to fake having
 run it.
 
-**Prerequisite (not this blueprint's to solve).** A real
-`ANTHROPIC_API_KEY`, supplied by Mike, configured in whatever real
-environment eventually runs this system day to day — not this remote
-build environment, which has never held one and has no path to obtaining
-one. Nothing below can begin until this exists.
+**Prerequisite — partially, informally satisfied, 2026-08-05.** A real
+`ANTHROPIC_API_KEY`, supplied by Mike directly in-session — disposable,
+testing-only, never written to any file or committed, used only as a
+transient environment variable for the lifetime of each live call, then
+discarded. This is **not** the standing credential this stage
+describes, "configured in whatever real environment eventually runs
+this system day to day" — it was a one-session loan that made a first,
+informal live trial possible (see below), not a solved prerequisite.
+Whoever ends up running this system day to day still needs their own
+real, standing key; open question 6 (§12) is informed by this, not
+closed by it.
 
-**Stage 1 — Small, supervised extraction trial.** A handful (5-10) of
-real or highly realistic receipt images, extracted one at a time, each
-field (vendor, date, jurisdiction-bearing address, gallons, fuel type,
-total, receipt number) checked by a human against the source image
-directly. Purpose: does extraction work at all against real image
-input, not synthetic text files standing in for one — every extraction
-test in this project so far has used plain-text stand-ins, never an
-actual photograph or scan.
+**Stage 1 — Small, supervised extraction trial. Informally, partially
+exercised, 2026-08-05 — not yet the formal trial.** One real call
+against one synthesized (not photographed or scanned) receipt image:
+every field read correctly, `extraction_confidence 0.97`, independently
+checked by hand against the source image — but the model's raw output
+turned out to need a markdown-fence fix before it could parse at all
+(`docs/lanes/C/NOTES.md` Session 3), a real finding this stage's
+methodology was built to catch. This is genuine signal the extraction
+path works end to end once that fix landed, but it is one call, not the
+5-10-image sample this stage specifies, and a synthesized image, not
+"an actual photograph or scan" as this paragraph originally
+distinguished — that distinction still hasn't been tested. The formal
+Stage 1 trial, against real or highly realistic receipt images, one at
+a time, remains undone.
 
-**Stage 2 — Confidence calibration.** `DEFAULT_CONFIDENCE_THRESHOLD =
-0.75` (`validators.py`) was chosen without ever having a single real
-extraction to calibrate against. Once Stage 1 produces real
+**Stage 2 — Confidence calibration. Still not started for real.**
+`DEFAULT_CONFIDENCE_THRESHOLD = 0.75` (`validators.py`) was chosen
+without ever having a real extraction to calibrate against; one data
+point now exists (0.97, correct) from the informal Stage 1 trial above,
+but one point is not a calibration set, and it was a synthesized image
+besides. Once the formal Stage 1 produces enough real
 extraction-confidence values alongside real correct/incorrect outcomes,
 check whether 0.75 is actually the right line — a threshold picked
 before any live data existed is a placeholder that happens to be
@@ -473,10 +554,14 @@ known and acceptable to Mike. No number is proposed here — that's a
 decision for whoever reviews Stage 3's actual results, not something
 this document should invent in advance of real data.
 
-**What this plan is not.** It is not a claim that vision extraction
-works — only that the doctrine (§`OCR_VISION_EXTRACTION_DOCTRINE_v1`)
-this system already follows for it is sound, verified against real
-code, and ready for the day real data can test it.
+**What this plan is not.** It is not a claim that vision extraction is
+fully validated — 2026-08-05's informal trial is real, positive signal
+(and found a real bug the formal trial would also have caught), but one
+call against one synthesized image is not Stage 1, let alone Stages 2-4.
+The doctrine (§`OCR_VISION_EXTRACTION_DOCTRINE_v1`) this system already
+follows for it is sound, verified against real code, and has now been
+tested against one real call — Stages 1-4, run formally, are still
+ahead.
 
 ## 10. What Happens to `build/ifta-ui`
 
@@ -508,7 +593,14 @@ not decided unilaterally here.
   signature package, a drafted notification — never a live write to
   another system, never an autonomous send. Human authority remains
   final at every one of those steps, the same as it already is for
-  approval and sealing today.
+  approval and sealing today. **Confirmed true under real construction,
+  not just promised:** the first type, Recommended Payment Amount,
+  built 2026-08-05, writes exactly one proposal file to Archive and
+  stops — `generate_payment_recommendation()`'s only connection
+  parameter is `read_only_conn`, structurally incapable of any database
+  write, and no payment API, bank integration, DocuSign, or QuickBooks
+  write exists anywhere in this codebase for it to reach. See §13
+  Phase 6.
 - Human approval remains required, explicitly, for: IFTA filing,
   DocuSign/signature package, accounting notification, payment/check
   authorization, and sealing (already true — `attempt_seal()` cannot run
@@ -519,20 +611,20 @@ not decided unilaterally here.
 
 ## 12. Open Questions for Mike
 
-1. **Quarter-end trigger:** should preparing a quarter's draft be a
-   single manual "Prepare This Quarter" action (an operator or Mike
-   clicks it once, near quarter-end — no new infrastructure, still
-   satisfies "the system does the clerical work") or does this blueprint
-   need to plan for a real scheduler now? Recommendation: manual trigger
-   first — it satisfies the core principle (Mike reviews, doesn't
-   perform) without taking on production infrastructure this session
-   can't stand up anyway.
-2. **Mileage's future.** Is manual entry (already built) acceptable as
-   the ongoing source of truth indefinitely, or is there a real future
-   plan (an ELD export dropped into DispatchPilot's `ELD` folder, today
-   evidence-only with no extraction logic) that should be scoped as a
-   later phase? This blueprint doesn't answer it — it flags that the
-   Clerk's value is capped by this answer.
+1. ~~**Quarter-end trigger**~~ — **APPROVED AND BUILT, 2026-08-05.**
+   Manual "Prepare This Quarter" action, exactly the recommended option
+   — no scheduler. Built with one modification given directly by Mike
+   before any code was written: preparation builds the worksheet and
+   runs detectors, but never automatically submits for approval —
+   submission stays a separate, deliberate human action, to keep
+   Preparation / Review / Approval Routing clearly distinct. See §13
+   Phase 5, `docs/ifta-clerk/PREPARE_THIS_QUARTER_NOTES_v1.md`. Closed.
+2. ~~**Mileage's future**~~ — **RESOLVED, 2026-08-05: manual entry,
+   permanently.** Not a later-phase question — a standing answer. No
+   ELD/GPS/odometer-device integration exists or is planned; the
+   DispatchPilot `ELD` folder stays evidence-only, with no extraction
+   logic, by design. See §3's mileage bullet and
+   `docs/ifta-clerk/MILEAGE_ENTRY_NOTES_v1.md`. Closed.
 3. **Confidence threshold.** What `extraction_confidence` cutoff should
    route a record to "suspect, review before trusting" rather than being
    silently accepted? §9 recommends calibrating this against real data
@@ -548,7 +640,14 @@ not decided unilaterally here.
    `WORKSHEET_PREVIEW_MODE_WALKTHROUGH_REPORT_v1.md`. Closed.
 6. **Who owns Stage 1-4 of §9** — obtaining and holding the real
    `ANTHROPIC_API_KEY`, and where the validation trial actually runs?
-   Outside this repository's or this build session's control either way.
+   Still open. Mike supplied a disposable, testing-only key directly
+   in-session on 2026-08-05, which made an informal, partial Stage 1
+   trial possible (§9) and found a real bug — but that key was never
+   meant to be, and wasn't treated as, a standing production credential;
+   it was used only as a transient environment variable and never
+   written to any file. Whoever ends up running this system day to day
+   still needs their own real key and their own decision about where
+   the formal trial runs. Not resolved by this session's use of one.
 7. **`broken_evidence_linkage`'s future path.** It's excluded from
    Category 2 Live Indicators (§8) because `EvidenceSpine.retrieve()`
    always writes an audit entry and can create an urgent Queue item on a
@@ -583,27 +682,57 @@ the next.
   call, and was excluded rather than accepted as side-effect-free. No
   `WorksheetEngine` change was needed for the 4 that shipped — confirmed
   true as built, not just projected.
-- **Phase 3 — The Review Dashboard, fully assembled** (§7). All seven
-  panels, once mileage's role (§12.2) and the confidence threshold
-  (§12.3) are answered. "Estimated tax position" can now call the real,
-  already-built `preview()` (Phase 4 is done); this phase is the
-  dashboard screen itself, still not built.
+- **Phase 3 — The Review Dashboard, fully assembled. Built and merged,
+  2026-08-05** (§7). All seven panels, real, mounted at `/ifta-clerk`,
+  the Shell's primary link. Built before the confidence threshold
+  (§12.3) was answered — panel 5 (Suspect entries) uses the existing
+  0.75 placeholder, explicitly labeled as such, rather than blocking on
+  a still-open question. Mileage's role (§12.2) was still open when this
+  phase shipped and was resolved afterward, separately (Phase 5.5,
+  below). See `docs/ifta-clerk/REVIEW_DASHBOARD_NOTES_v1.md`,
+  `REVIEW_DASHBOARD_WALKTHROUGH_REPORT_v1.md`.
 - **Phase 4 — `WorksheetEngine` preview mode. Built and merged,
   2026-08-04** (§6.1, §12.5). Unlocked live tax estimates before a real
   build, exactly as designed. Did **not** automatically unlock the
   remaining five detectors joining Category 2, as originally projected —
   that turned out to be its own explicit decision (open question 8,
   §12), deferred rather than bundled in.
-- **Phase 5 — The Clerk's own trigger.** A single "Prepare This Quarter"
-  action that calls `WorksheetEngine.build()` + `run_all_detectors()` +
-  `submit_for_approval()` in sequence, itself — replacing three manual
-  clicks with the one action a human actually wants to take. Still
+- **Phase 5 — The Clerk's own trigger. Built and merged, 2026-08-05,
+  with one correction to this paragraph's original text.** As
+  originally projected here, a single "Prepare This Quarter" action was
+  going to call `WorksheetEngine.build()` + `run_all_detectors()` +
+  `submit_for_approval()` in sequence, all three, automatically. Mike
+  modified that directly before any code was written: preparation
+  builds the worksheet and runs detectors, but **never** automatically
+  submits for approval — `POST /submit` is a separate, deliberate
+  action, refusing cleanly if nothing's been prepared or if the
+  worksheet was already submitted. This keeps Preparation / Review /
+  Approval Routing as three distinct steps, not two. Still
   human-initiated, still no scheduler, still fully inside existing
-  boundaries.
-- **Phase 6 (future, named only, not designed here).** Recommendation
-  packages only, per §11: a prepared DocuSign package, a drafted
-  accounting notification, a recommended payment amount — proposals,
-  never live sends, human-gated at every step.
+  boundaries. See `docs/ifta-clerk/PREPARE_THIS_QUARTER_NOTES_v1.md`,
+  `PREPARE_THIS_QUARTER_WALKTHROUGH_REPORT_v1.md`.
+- **Phase 5.5 — Mileage entry UI (not originally numbered; added
+  2026-08-05).** Resolves §12.2, closed above. `POST /record-mileage`
+  gives mileage entry a real front door in `dispatch.ifta_clerk`,
+  replacing the CLI-only `tools/mileage_worksheet.py` as the normal
+  path (the CLI remains, now a thin wrapper around the same shared
+  `dispatch.ifta.mileage.record_mileage()`). A non-blocking
+  plausibility warning, computed from `live_fleet_mpg_estimate()`
+  against the same `DEFAULT_MPG_BAND` `fleet_mpg_out_of_band` already
+  uses, surfaces at entry time — never refusing the entry, only
+  flagging it earlier than the detector otherwise would. See
+  `docs/ifta-clerk/MILEAGE_ENTRY_NOTES_v1.md`.
+- **Phase 6 — Recommendation packages, per §11. In progress: one of
+  three types built.** Recommended Payment Amount, built and merged
+  2026-08-05 — `POST /recommend-payment` wraps a sealed worksheet's own
+  `total_net_tax` in a `remit`/`credit`/`no_payment_due` label and
+  writes one proposal file to Archive, nothing more. Chosen to build
+  first because it has zero external-system dependency, unlike the
+  other two, which still require a real DocuSign or accounting-system
+  target Mike hasn't specified: a prepared DocuSign package, and a
+  drafted accounting notification, both remain future, named only, not
+  designed. See `docs/ifta-clerk/PAYMENT_RECOMMENDATION_NOTES_v1.md`,
+  `PAYMENT_RECOMMENDATION_WALKTHROUGH_REPORT_v1.md`.
 
 Each phase gets its own launch package, its own tests, its own
 walkthrough, and its own explicit sign-off before merge — the same
