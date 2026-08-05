@@ -31,6 +31,7 @@ def ifta_engine(db_conn, sandbox_config):
 def insert_mileage_record(conn, *, unit_number, jurisdiction, period_start, period_end, miles):
     from dispatch.common.ids import new_ulid
 
+    mileage_record_id = new_ulid()
     conn.execute(
         """
         INSERT INTO mileage_records (
@@ -38,8 +39,9 @@ def insert_mileage_record(conn, *, unit_number, jurisdiction, period_start, peri
             jurisdiction, miles, source, entered_by, schema_version
         ) VALUES (?, ?, ?, ?, ?, ?, 'manual_worksheet', 'human:mike', '1.0')
         """,
-        (new_ulid(), unit_number, period_start, period_end, jurisdiction, miles),
+        (mileage_record_id, unit_number, period_start, period_end, jurisdiction, miles),
     )
+    return mileage_record_id
 
 
 def insert_fuel_record(

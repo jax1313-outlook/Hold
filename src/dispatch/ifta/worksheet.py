@@ -18,6 +18,7 @@ arithmetic itself exists in exactly one place.
 from __future__ import annotations
 
 import calendar
+import json
 import re
 import sqlite3
 from datetime import date, datetime, timezone
@@ -79,44 +80,55 @@ def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
     return row is not None
 
 
-def _aggregate_mileage(conn: sqlite3.Connection, start: date, end: date) -> tuple[dict[str, float], float]:
+def _aggregate_mileage(
+    conn: sqlite3.Connection, start: date, end: date
+) -> tuple[dict[str, float], float, dict[str, list[str]]]:
     """Module-level, read-only-safe: takes whichever connection the caller
     has (WorksheetEngine's read_only_conn, or preview()'s own), never a
     self reference. A genuinely fresh database with no mileage ever
     recorded has no mileage_records table at all -- that's an absence of
-    data, not an error, so it reads back as (empty, 0.0) rather than a raw
-    sqlite3.OperationalError."""
+    data, not an error, so it reads back as (empty, 0.0, empty) rather
+    than a raw sqlite3.OperationalError.
+
+    Also returns which mileage_record_id contributed to each
+    jurisdiction's total -- provenance alongside the sum, not a second
+    computation of it, so the Archive Package (package.py's sealed
+    bundle) can trace a number back to the real records behind it."""
     if not _table_exists(conn, "mileage_records"):
-        return {}, 0.0
+        return {}, 0.0, {}
     rows = conn.execute(
-        "SELECT jurisdiction, miles, period_start, period_end FROM mileage_records"
+        "SELECT mileage_record_id, jurisdiction, miles, period_start, period_end FROM mileage_records"
     ).fetchall()
     by_jurisdiction: dict[str, float] = {}
+    record_ids_by_jurisdiction: dict[str, list[str]] = {}
     total = 0.0
     for row in rows:
         period_start = date.fromisoformat(row["period_start"])
         period_end = date.fromisoformat(row["period_end"])
         if period_start >= start and period_end <= end:
             by_jurisdiction[row["jurisdiction"]] = by_jurisdiction.get(row["jurisdiction"], 0.0) + row["miles"]
+            record_ids_by_jurisdiction.setdefault(row["jurisdiction"], []).append(row["mileage_record_id"])
             total += row["miles"]
-    return by_jurisdiction, total
+    return by_jurisdiction, total, record_ids_by_jurisdiction
 
 
 def _aggregate_fuel(
     conn: sqlite3.Connection, start: date, end: date, fuel_type: str
-) -> tuple[dict[str, float], float]:
-    """Same reasoning as _aggregate_mileage: no fuel_records table yet
-    reads back as no fuel recorded yet, not a crash."""
+) -> tuple[dict[str, float], float, dict[str, list[str]]]:
+    """Same reasoning as _aggregate_mileage, including the added
+    fuel_record_id provenance: no fuel_records table yet reads back as no
+    fuel recorded yet, not a crash."""
     if not _table_exists(conn, "fuel_records"):
-        return {}, 0.0
+        return {}, 0.0, {}
     rows = conn.execute(
         """
-        SELECT jurisdiction, gallons_normalized, purchase_date, tractor_or_reefer
+        SELECT fuel_record_id, jurisdiction, gallons_normalized, purchase_date, tractor_or_reefer
         FROM fuel_records WHERE fuel_type = ?
         """,
         (fuel_type,),
     ).fetchall()
     by_jurisdiction: dict[str, float] = {}
+    record_ids_by_jurisdiction: dict[str, list[str]] = {}
     total = 0.0
     for row in rows:
         purchase_date = date.fromisoformat(row["purchase_date"])
@@ -128,8 +140,9 @@ def _aggregate_fuel(
             by_jurisdiction[row["jurisdiction"]] = (
                 by_jurisdiction.get(row["jurisdiction"], 0.0) + row["gallons_normalized"]
             )
+            record_ids_by_jurisdiction.setdefault(row["jurisdiction"], []).append(row["fuel_record_id"])
             total += row["gallons_normalized"]
-    return by_jurisdiction, total
+    return by_jurisdiction, total, record_ids_by_jurisdiction
 
 
 def _compute_worksheet_lines(
@@ -142,6 +155,8 @@ def _compute_worksheet_lines(
     total_miles: float,
     gallons_by_jurisdiction: dict[str, float],
     total_tractor_gallons: float,
+    mileage_record_ids_by_jurisdiction: dict[str, list[str]],
+    fuel_record_ids_by_jurisdiction: dict[str, list[str]],
 ) -> tuple[float, list[dict[str, Any]]]:
     """Computation spec 3.5 itself, verbatim -- the one place fleet_mpg,
     taxable_gallons, and net_tax get computed. build() (which persists the
@@ -149,7 +164,12 @@ def _compute_worksheet_lines(
     arithmetic exists exactly once rather than being reimplemented for the
     preview path. conn is only ever read from here (rate lookups) --
     build() passes its write connection, preview() its read-only one, and
-    either is safe against this function's own access pattern."""
+    either is safe against this function's own access pattern.
+
+    mileage_record_ids_by_jurisdiction/fuel_record_ids_by_jurisdiction
+    carry through unchanged from _aggregate_mileage/_aggregate_fuel into
+    each line's related_record_ids -- provenance, not arithmetic; the
+    net_tax computation below never reads either dict."""
     if total_tractor_gallons <= 0:
         raise InsufficientDataError(
             f"no tractor {fuel_type} gallons recorded for {quarter}; cannot compute fleet_mpg"
@@ -195,6 +215,10 @@ def _compute_worksheet_lines(
                 "rate": rate,
                 "surcharge": surcharge,
                 "net_tax": net_tax,
+                "related_record_ids": {
+                    "mileage_record_ids": sorted(mileage_record_ids_by_jurisdiction.get(jurisdiction, [])),
+                    "fuel_record_ids": sorted(fuel_record_ids_by_jurisdiction.get(jurisdiction, [])),
+                },
             }
         )
 
@@ -242,8 +266,12 @@ def preview(read_only_conn: sqlite3.Connection, *, quarter: str, fuel_type: str,
         )
 
     start, end = quarter_bounds(quarter)
-    miles_by_jurisdiction, total_miles = _aggregate_mileage(read_only_conn, start, end)
-    gallons_by_jurisdiction, total_tractor_gallons = _aggregate_fuel(read_only_conn, start, end, fuel_type)
+    miles_by_jurisdiction, total_miles, mileage_record_ids_by_jurisdiction = _aggregate_mileage(
+        read_only_conn, start, end
+    )
+    gallons_by_jurisdiction, total_tractor_gallons, fuel_record_ids_by_jurisdiction = _aggregate_fuel(
+        read_only_conn, start, end, fuel_type
+    )
 
     fleet_mpg, lines = _compute_worksheet_lines(
         read_only_conn,
@@ -254,6 +282,8 @@ def preview(read_only_conn: sqlite3.Connection, *, quarter: str, fuel_type: str,
         total_miles=total_miles,
         gallons_by_jurisdiction=gallons_by_jurisdiction,
         total_tractor_gallons=total_tractor_gallons,
+        mileage_record_ids_by_jurisdiction=mileage_record_ids_by_jurisdiction,
+        fuel_record_ids_by_jurisdiction=fuel_record_ids_by_jurisdiction,
     )
     total_net_tax = sum(line["net_tax"] for line in lines)
 
@@ -284,8 +314,12 @@ class WorksheetEngine:
     def build(self, *, quarter: str, fuel_type: str, rate_table_version: str) -> dict[str, Any]:
         start, end = quarter_bounds(quarter)
 
-        miles_by_jurisdiction, total_miles = _aggregate_mileage(self._ro_conn, start, end)
-        gallons_by_jurisdiction, total_tractor_gallons = _aggregate_fuel(self._ro_conn, start, end, fuel_type)
+        miles_by_jurisdiction, total_miles, mileage_record_ids_by_jurisdiction = _aggregate_mileage(
+            self._ro_conn, start, end
+        )
+        gallons_by_jurisdiction, total_tractor_gallons, fuel_record_ids_by_jurisdiction = _aggregate_fuel(
+            self._ro_conn, start, end, fuel_type
+        )
 
         fleet_mpg, lines = _compute_worksheet_lines(
             self._conn,
@@ -296,6 +330,8 @@ class WorksheetEngine:
             total_miles=total_miles,
             gallons_by_jurisdiction=gallons_by_jurisdiction,
             total_tractor_gallons=total_tractor_gallons,
+            mileage_record_ids_by_jurisdiction=mileage_record_ids_by_jurisdiction,
+            fuel_record_ids_by_jurisdiction=fuel_record_ids_by_jurisdiction,
         )
 
         total_net_tax = sum(line["net_tax"] for line in lines)
@@ -315,8 +351,9 @@ class WorksheetEngine:
                 """
                 INSERT INTO ifta_worksheet_lines (
                     ifta_worksheet_line_id, ifta_worksheet_id, jurisdiction, miles,
-                    taxable_gallons, tax_paid_gallons, rate, surcharge, net_tax
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    taxable_gallons, tax_paid_gallons, rate, surcharge, net_tax,
+                    related_record_ids
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     new_ulid(),
@@ -328,6 +365,7 @@ class WorksheetEngine:
                     line["rate"],
                     line["surcharge"],
                     line["net_tax"],
+                    json.dumps(line["related_record_ids"]),
                 ),
             )
 

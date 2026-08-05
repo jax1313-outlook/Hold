@@ -3,6 +3,7 @@ enforcement mechanism (a genuine mode=ro connection, not just "the code
 doesn't happen to write here")."""
 from __future__ import annotations
 
+import json
 import sqlite3
 
 import pytest
@@ -74,6 +75,35 @@ def test_build_worksheet_computes_fleet_mpg_and_per_jurisdiction_tax(ifta_engine
 
     assert worksheet["total_net_tax"] == pytest.approx(tx_line["net_tax"] + ok_line["net_tax"])
     assert worksheet["rate_table_version"] == "fixture-v1"
+
+
+def test_build_captures_which_records_fed_each_jurisdiction_line(ifta_engine, db_conn):
+    """related_record_ids is provenance, not arithmetic -- captured
+    alongside the sums at build() time so the Archive Package
+    (package.py's sealed bundle) can trace a jurisdiction's numbers back
+    to the real records behind them, frozen exactly like the numbers
+    themselves rather than re-derived later."""
+    tx_mileage_id = insert_mileage_record(
+        db_conn, unit_number="T-100", jurisdiction="TX",
+        period_start="2026-04-01", period_end="2026-06-30", miles=1000.0,
+    )
+    ok_mileage_id = insert_mileage_record(
+        db_conn, unit_number="T-100", jurisdiction="OK",
+        period_start="2026-04-01", period_end="2026-06-30", miles=500.0,
+    )
+    tx_fuel_id = insert_fuel_record(db_conn, jurisdiction="TX", purchase_date="2026-04-15", gallons_normalized=100.0)
+    ok_fuel_id = insert_fuel_record(db_conn, jurisdiction="OK", purchase_date="2026-05-15", gallons_normalized=60.0)
+    rates.insert_rate(db_conn, jurisdiction="TX", quarter="2026-Q2", fuel_type="diesel", rate=0.20, source_version="fixture-v1")
+    rates.insert_rate(db_conn, jurisdiction="OK", quarter="2026-Q2", fuel_type="diesel", rate=0.18, source_version="fixture-v1")
+
+    worksheet = ifta_engine.build(quarter="2026-Q2", fuel_type="diesel", rate_table_version="fixture-v1")
+    tx_line = next(l for l in worksheet["lines"] if l["jurisdiction"] == "TX")
+    ok_line = next(l for l in worksheet["lines"] if l["jurisdiction"] == "OK")
+
+    tx_related = json.loads(tx_line["related_record_ids"])
+    ok_related = json.loads(ok_line["related_record_ids"])
+    assert tx_related == {"mileage_record_ids": [tx_mileage_id], "fuel_record_ids": [tx_fuel_id]}
+    assert ok_related == {"mileage_record_ids": [ok_mileage_id], "fuel_record_ids": [ok_fuel_id]}
 
 
 def test_missing_rate_raises_rather_than_fabricating(ifta_engine, db_conn):

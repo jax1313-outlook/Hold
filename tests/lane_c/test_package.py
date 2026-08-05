@@ -96,6 +96,70 @@ def test_worksheets_cannot_be_deleted(ifta_engine, db_conn):
         )
 
 
+def test_sealed_bundle_includes_real_evidence_for_each_line(ifta_engine, db_conn, queue, sandbox_config):
+    """Closes the evidence-refs gap: the bundle's own docstring has
+    always promised 'worksheet + lines + evidence refs' -- this proves
+    it, not just the presence of a lines list."""
+    mileage_id = insert_mileage_record(
+        db_conn, unit_number="T-100", jurisdiction="TX",
+        period_start="2026-04-01", period_end="2026-06-30", miles=1000.0,
+    )
+    fuel_id = insert_fuel_record(db_conn, jurisdiction="TX", purchase_date="2026-04-15", gallons_normalized=100.0, unit_number="T-100")
+    db_conn.execute(
+        """
+        INSERT INTO evidence_records (
+            evidence_record_id, archive_path, file_hash, document_type,
+            document_date, capture_date, extraction_status, schema_version
+        ) VALUES ('ev_fixture', 'Evidence/2026/04/ev_fixture.jpg', 'deadbeef', 'pump_receipt',
+                  '2026-04-15', '2026-04-15T00:00:00Z', 'complete', '1.1')
+        """
+    )
+    rates.insert_rate(db_conn, jurisdiction="TX", quarter="2026-Q2", fuel_type="diesel", rate=0.20, source_version="fixture-v1")
+    worksheet = ifta_engine.build(quarter="2026-Q2", fuel_type="diesel", rate_table_version="fixture-v1")
+
+    queue_item = package.submit_for_approval(db_conn, queue, worksheet)
+    queue.approve(queue_item["queue_item_id"], decided_by="human:mike", decision_note="checked")
+    package.attempt_seal(db_conn, queue, sandbox_config["roots"], worksheet["ifta_worksheet_id"])
+
+    bundle_path = Path(sandbox_config["roots"]["archive"]) / "IFTA" / "2026-Q2" / f"{worksheet['ifta_worksheet_id']}.json"
+    bundle = json.loads(bundle_path.read_text())
+    line = bundle["lines"][0]
+
+    assert line["jurisdiction"] == "TX"
+    evidence = line["evidence"]
+    assert [r["mileage_record_id"] for r in evidence["mileage_records"]] == [mileage_id]
+    assert evidence["mileage_records"][0]["entered_by"] == "human:mike"
+    assert [r["fuel_record_id"] for r in evidence["fuel_records"]] == [fuel_id]
+    assert evidence["fuel_records"][0]["evidence_record"]["archive_path"] == "Evidence/2026/04/ev_fixture.jpg"
+    assert evidence["fuel_records"][0]["evidence_record"]["file_hash"] == "deadbeef"
+
+
+def test_sealed_bundle_skips_a_fuel_record_whose_evidence_row_is_missing(ifta_engine, db_conn, queue, sandbox_config):
+    """tests/lane_c/conftest.py's insert_fuel_record fixture points
+    evidence_record_id at a placeholder ('ev_fixture') that most tests
+    never actually insert -- this is exactly the 'no longer resolves'
+    path _resolve_line_evidence must degrade gracefully on, real evidence
+    row or not."""
+    insert_mileage_record(
+        db_conn, unit_number="T-100", jurisdiction="TX",
+        period_start="2026-04-01", period_end="2026-06-30", miles=1000.0,
+    )
+    fuel_id = insert_fuel_record(db_conn, jurisdiction="TX", purchase_date="2026-04-15", gallons_normalized=100.0, unit_number="T-100")
+    rates.insert_rate(db_conn, jurisdiction="TX", quarter="2026-Q2", fuel_type="diesel", rate=0.20, source_version="fixture-v1")
+    worksheet = ifta_engine.build(quarter="2026-Q2", fuel_type="diesel", rate_table_version="fixture-v1")
+
+    queue_item = package.submit_for_approval(db_conn, queue, worksheet)
+    queue.approve(queue_item["queue_item_id"], decided_by="human:mike")
+    package.attempt_seal(db_conn, queue, sandbox_config["roots"], worksheet["ifta_worksheet_id"])
+
+    bundle_path = Path(sandbox_config["roots"]["archive"]) / "IFTA" / "2026-Q2" / f"{worksheet['ifta_worksheet_id']}.json"
+    bundle = json.loads(bundle_path.read_text())
+    fuel_record = bundle["lines"][0]["evidence"]["fuel_records"][0]
+
+    assert fuel_record["fuel_record_id"] == fuel_id
+    assert fuel_record["evidence_record"] is None  # missing evidence row -- skipped, not raised
+
+
 def test_worksheet_lines_are_fully_immutable(ifta_engine, db_conn):
     import sqlite3
 

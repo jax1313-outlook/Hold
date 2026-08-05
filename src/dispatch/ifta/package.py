@@ -41,6 +41,46 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
+def _resolve_line_evidence(conn: sqlite3.Connection, line: dict[str, Any]) -> dict[str, Any]:
+    """Turns a worksheet line's frozen related_record_ids (captured at
+    build() time -- see worksheet.py's _aggregate_mileage/_aggregate_fuel)
+    into the real records behind this jurisdiction's numbers. Mileage
+    records are self-attested (manual entry, no source document) so only
+    their own fields are included; fuel records are resolved together
+    with their linked evidence_records row -- the actual registered
+    document (archive_path, file_hash, document_type), not just an
+    opaque id. A record that no longer resolves (should never happen --
+    nothing in this codebase deletes fuel_records/mileage_records/
+    evidence_records) is skipped rather than raising, so a seal can never
+    be blocked by a bundling concern after approval has already been
+    granted."""
+    related = json.loads(line["related_record_ids"])
+    mileage_records = []
+    for mileage_record_id in related.get("mileage_record_ids", []):
+        row = conn.execute(
+            "SELECT * FROM mileage_records WHERE mileage_record_id = ?", (mileage_record_id,)
+        ).fetchone()
+        if row is not None:
+            mileage_records.append(dict(row))
+
+    fuel_records = []
+    for fuel_record_id in related.get("fuel_record_ids", []):
+        fuel_row = conn.execute(
+            "SELECT * FROM fuel_records WHERE fuel_record_id = ?", (fuel_record_id,)
+        ).fetchone()
+        if fuel_row is None:
+            continue
+        fuel_record = dict(fuel_row)
+        evidence_row = conn.execute(
+            "SELECT * FROM evidence_records WHERE evidence_record_id = ?",
+            (fuel_record["evidence_record_id"],),
+        ).fetchone()
+        fuel_record["evidence_record"] = dict(evidence_row) if evidence_row is not None else None
+        fuel_records.append(fuel_record)
+
+    return {"mileage_records": mileage_records, "fuel_records": fuel_records}
+
+
 def submit_for_approval(
     conn: sqlite3.Connection, queue: QueueStore, worksheet: dict[str, Any]
 ) -> dict[str, Any]:
@@ -110,9 +150,15 @@ def attempt_seal(
     ).fetchone()
     sealed_worksheet = dict(sealed_row)
 
+    lines_with_evidence = []
+    for line in lines:
+        line_dict = dict(line)
+        line_dict["evidence"] = _resolve_line_evidence(conn, line_dict)
+        lines_with_evidence.append(line_dict)
+
     bundle = {
         "worksheet": sealed_worksheet,
-        "lines": [dict(line) for line in lines],
+        "lines": lines_with_evidence,
         "sealed_at": sealed_at,
         "approved_by": queue_item["decided_by"],
         "approval_note": queue_item["decision_note"],
