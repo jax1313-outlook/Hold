@@ -135,9 +135,26 @@ def _base64(data: bytes) -> str:
     return base64.b64encode(data).decode("ascii")
 
 
+def _strip_markdown_fence(text: str) -> str:
+    """Real model output routinely wraps the JSON object in a ```json ...
+    ``` fence despite being told to return no other text -- strip one
+    leading/trailing fence, nothing else, so a genuinely malformed
+    response still fails loudly rather than being coerced into parsing."""
+    stripped = text.strip()
+    if not stripped.startswith("```"):
+        return text
+    first_newline = stripped.find("\n")
+    if first_newline == -1:
+        return text
+    body = stripped[first_newline + 1 :]
+    if body.endswith("```"):
+        body = body[: -len("```")]
+    return body.strip()
+
+
 def _parse_response_text(text: str) -> tuple[list[dict[str, Any]], float | None]:
     try:
-        payload = json.loads(text)
+        payload = json.loads(_strip_markdown_fence(text))
     except json.JSONDecodeError as exc:
         raise VisionExtractionUnavailable(f"model did not return valid JSON: {exc}") from exc
     return payload.get("lines", []), payload.get("document_total")

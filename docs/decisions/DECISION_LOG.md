@@ -427,6 +427,40 @@ database write (its only connection parameter is `read_only_conn`) and
 proven, by `ast`-parsed imports, to import nothing with send, approval,
 or sealing capability.
 
+### OCR fenced-JSON fix merge approval — APPROVED, 2026-08-05
+
+Mike supplied a real, disposable testing `ANTHROPIC_API_KEY` directly
+in-session, unblocking item 4 of his 5-item work list ("OCR validation
+with real receipts") for the first time all session. Per standing
+practice the key was never written to any file — used only as a
+transient environment variable for the lifetime of each live call, then
+discarded. A live call against a real (synthesized, since no real
+scanned receipt existed in this build environment) pump-receipt image
+found a real bug: Claude's real output wraps its JSON object in a
+` ```json ... ``` ` markdown fence despite the prompt saying "no other
+text," and `_parse_response_text()` in
+`src/dispatch/receipt/extraction/vision.py` called `json.loads()`
+directly — every real scanned receipt would quarantine
+unconditionally, not occasionally. Mike directed the fix, a regression
+test using the exact fenced shape from the live call, and the same
+branch → test → merge pipeline as everything else this session
+("Want me to go ahead and fix `_parse_response_text` ... YES"), then
+approved the merge directly ("Merge Yes").
+
+Re-verified live after the fix, not just via the automated suite: the
+identical receipt image now routes cleanly to a real
+`FuelRecord`/`ExpenseRecord`, every extracted field checked by hand
+against the source image (vendor, TX jurisdiction correctly derived
+from the address, diesel, 112.4 gallons, $438.24 total, unit number,
+driver, odometer, card last-4, receipt number, 0.97 confidence).
+`docs/lanes/C/NOTES.md` Session 3 has the full record.
+
+**Unblocked:** `build/ocr-fenced-json-fix` merges into `integration` —
+`_strip_markdown_fence()` in `dispatch.receipt.extraction.vision`, and
+`anthropic>=0.40` uncommented in `requirements.txt` now that its own
+stated condition (a real key supplied, extraction exercised live) is
+true.
+
 ## Open
 
 (none — all four originally-held items, the Lane A, Lane B, Lane C, and
@@ -435,5 +469,6 @@ Record v1.1 amendment, the Dispatch Shell merge approval, the
 WorksheetEngine Preview Mode merge approval, the Category 2 Live
 Indicators merge approval, the IFTA Clerk Blueprint reconciliation merge
 approval, the Review Dashboard merge approval, the Prepare This Quarter
-/ Submit for Approval merge approval, and the Recommended Payment Amount
-merge approval above, are resolved as of 2026-08-05)
+/ Submit for Approval merge approval, the Recommended Payment Amount
+merge approval, and the OCR fenced-JSON fix merge approval above, are
+resolved as of 2026-08-05)
