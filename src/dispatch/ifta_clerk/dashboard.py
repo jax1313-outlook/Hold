@@ -185,7 +185,11 @@ def _confirmed_exceptions(conn: sqlite3.Connection, ifta_worksheet_id: str) -> l
     return findings
 
 
-def _distinct_rate_versions_for_quarter(conn: sqlite3.Connection, *, quarter: str, fuel_type: str) -> list[str]:
+def distinct_rate_versions_for_quarter(conn: sqlite3.Connection, *, quarter: str, fuel_type: str) -> list[str]:
+    """Public (not module-private) because prepare.py's real build() call
+    needs the identical no-fabrication rate-version resolution this
+    module's own preview() estimate already uses -- shared within this
+    package, not reimplemented a second time."""
     if not _table_exists(conn, "rate_tables"):
         return []
     rows = conn.execute(
@@ -199,7 +203,7 @@ def _tax_position(conn: sqlite3.Connection, worksheet: dict[str, Any] | None, *,
     if worksheet is not None:
         return {"source": "worksheet", "worksheet": worksheet, "estimate": None, "error": None}
 
-    rate_versions = _distinct_rate_versions_for_quarter(conn, quarter=quarter, fuel_type=fuel_type)
+    rate_versions = distinct_rate_versions_for_quarter(conn, quarter=quarter, fuel_type=fuel_type)
     if len(rate_versions) == 0:
         return {"source": "preview", "worksheet": None, "estimate": None, "error": "no rate has been entered for this quarter yet"}
     if len(rate_versions) > 1:
