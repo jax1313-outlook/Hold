@@ -139,6 +139,96 @@ def test_submit_route_without_a_prepare_shows_a_clean_error(client):
     assert "Could not submit for approval" in resp.data.decode()
 
 
+# --- /record-mileage ---
+
+
+def test_record_mileage_route_writes_a_real_row_and_redirects(client, db_conn):
+    resp = client.post("/record-mileage", data={
+        "quarter": "2026-Q2", "fuel_type": "diesel", "unit_number": "T-104",
+        "jurisdiction": "TX", "period_start": "2026-04-01", "period_end": "2026-06-30",
+        "miles": "1000.0", "entered_by": "human:mike",
+    })
+    assert resp.status_code == 302
+    assert "mileage_recorded=1" in resp.headers["Location"]
+
+    row = db_conn.execute("SELECT * FROM mileage_records WHERE unit_number = 'T-104'").fetchone()
+    assert row["jurisdiction"] == "TX"
+    assert row["miles"] == 1000.0
+    assert row["entered_by"] == "human:mike"
+    assert row["source"] == "manual_worksheet"
+
+    follow = client.get(resp.headers["Location"])
+    assert "Mileage recorded" in follow.data.decode()
+
+
+def test_record_mileage_route_requires_every_field(client, db_conn):
+    resp = client.post("/record-mileage", data={
+        "quarter": "2026-Q2", "fuel_type": "diesel", "unit_number": "T-104",
+        # jurisdiction, period_start, period_end, miles, entered_by all missing
+    })
+    assert resp.status_code == 400
+    assert "Could not record mileage" in resp.data.decode()
+
+    count = db_conn.execute("SELECT COUNT(*) FROM mileage_records").fetchone()[0]
+    assert count == 0
+
+
+def test_record_mileage_route_rejects_non_numeric_miles(client, db_conn):
+    resp = client.post("/record-mileage", data={
+        "quarter": "2026-Q2", "fuel_type": "diesel", "unit_number": "T-104",
+        "jurisdiction": "TX", "period_start": "2026-04-01", "period_end": "2026-06-30",
+        "miles": "not-a-number", "entered_by": "human:mike",
+    })
+    assert resp.status_code == 400
+    assert "miles must be a number" in resp.data.decode()
+
+
+def test_record_mileage_route_warns_when_it_would_push_fleet_mpg_out_of_band(client, db_conn):
+    """15.0 mpg is outside DEFAULT_MPG_BAND's (4.0, 9.5) -- a real,
+    non-blocking warning, not a refusal: the entry still succeeds."""
+    from dispatch.receipt.db import install_schema as install_receipt_schema
+
+    install_receipt_schema(db_conn)
+    insert_fuel_record(db_conn, jurisdiction="TX", purchase_date="2026-04-15", gallons_normalized=100.0, unit_number="T-104")
+    db_conn.commit()
+
+    resp = client.post("/record-mileage", data={
+        "quarter": "2026-Q2", "fuel_type": "diesel", "unit_number": "T-104",
+        "jurisdiction": "TX", "period_start": "2026-04-01", "period_end": "2026-06-30",
+        "miles": "1500.0", "entered_by": "human:mike",  # 1500/100 = 15.0 mpg
+    })
+    assert resp.status_code == 302
+    assert "mileage_recorded=1" in resp.headers["Location"]
+    assert "mpg_warning=15.00" in resp.headers["Location"]
+
+    row = db_conn.execute("SELECT COUNT(*) FROM mileage_records").fetchone()[0]
+    assert row == 1  # never refused -- still written
+
+    follow = client.get(resp.headers["Location"])
+    body = follow.data.decode()
+    assert "15.00" in body
+    assert "outside the usual" in body
+
+
+def test_record_mileage_route_no_warning_when_fleet_mpg_is_plausible(client, db_conn):
+    from dispatch.receipt.db import install_schema as install_receipt_schema
+
+    install_receipt_schema(db_conn)
+    insert_fuel_record(db_conn, jurisdiction="TX", purchase_date="2026-04-15", gallons_normalized=100.0, unit_number="T-104")
+    db_conn.commit()
+
+    resp = client.post("/record-mileage", data={
+        "quarter": "2026-Q2", "fuel_type": "diesel", "unit_number": "T-104",
+        "jurisdiction": "TX", "period_start": "2026-04-01", "period_end": "2026-06-30",
+        "miles": "700.0", "entered_by": "human:mike",  # 700/100 = 7.0 mpg -- in band
+    })
+    assert resp.status_code == 302
+    assert "mpg_warning" not in resp.headers["Location"]
+
+    follow = client.get(resp.headers["Location"])
+    assert "outside the usual" not in follow.data.decode()
+
+
 def test_submit_route_twice_is_refused(client, db_conn, sandbox_config):
     from dispatch.receipt.db import install_schema as install_receipt_schema
 
@@ -171,9 +261,10 @@ def test_ifta_clerk_source_never_issues_a_raw_sql_write():
             assert snippet not in text, f"{path} contains a raw SQL write: {snippet!r}"
 
 
-def test_ifta_clerk_app_has_exactly_three_post_routes():
-    """/prepare, /submit, and /recommend-payment are the app's only write
-    actions -- everything else, including / itself, stays GET-only."""
+def test_ifta_clerk_app_has_exactly_four_post_routes():
+    """/prepare, /submit, /recommend-payment, and /record-mileage are the
+    app's only write actions -- everything else, including / itself,
+    stays GET-only."""
     from dispatch.ifta_clerk.app import create_app
 
     app = create_app({"database": ":memory:", "roots": {"operations": ".", "library": ".", "archive": "."}})
@@ -181,7 +272,9 @@ def test_ifta_clerk_app_has_exactly_three_post_routes():
         rule.endpoint for rule in app.url_map.iter_rules()
         if rule.endpoint != "static" and "POST" in rule.methods
     }
-    assert post_endpoints == {"prepare", "submit", "recommend_payment"}, f"unexpected POST-capable routes: {post_endpoints}"
+    assert post_endpoints == {"prepare", "submit", "recommend_payment", "record_mileage_route"}, (
+        f"unexpected POST-capable routes: {post_endpoints}"
+    )
 
     dashboard_rule = next(r for r in app.url_map.iter_rules() if r.endpoint == "dashboard")
     assert "POST" not in dashboard_rule.methods

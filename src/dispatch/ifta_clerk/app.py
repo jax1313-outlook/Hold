@@ -2,12 +2,12 @@
 experience of the IFTA Clerk (IFTA_CLERK_BLUEPRINT_v1 section 7,
 approved 2026-08-04).
 
-Three deliberate write actions: `POST /prepare` and `POST /submit`
-(2026-08-04, Phase 5), and `POST /recommend-payment` (2026-08-04, Phase
-6's first named package -- Recommended Payment Amount), all thin
-wrappers around dispatch.ifta_clerk.prepare's and .recommend's real
-functions. Every other route is GET. This module (app.py) is the only
-place in this app that ever imports
+Four deliberate write actions: `POST /prepare` and `POST /submit`
+(2026-08-04, Phase 5), `POST /recommend-payment` (2026-08-04, Phase 6's
+first named package -- Recommended Payment Amount), and
+`POST /record-mileage` (2026-08-05 -- mileage source strategy, see
+docs/decisions/DECISION_LOG.md). Every other route is GET. This module
+(app.py) is the only place in this app that ever imports
 QueueStore/EvidenceSpine/dispatch.ifta.package -- dashboard.py stays
 exactly as read-only as it always was, and prepare.py/recommend.py are
 the only other modules allowed to write, so "can this write?" stays a
@@ -18,6 +18,18 @@ reachable only after a real Queue approval. recommend_payment() itself
 never touches the database at all -- it's the only write route backed
 solely by a read-only connection, since generating a payment
 recommendation only ever writes a file to Archive.
+
+record_mileage() (the /record-mileage route) is manual entry's real
+write path, shared with tools/mileage_worksheet.py -- mileage source
+strategy is decided (manual, permanent, no ELD/GPS/odometer-device
+integration; see docs/decisions/DECISION_LOG.md), so this route is
+mileage's normal front door now, not a stopgap. After a successful
+entry it computes a live, rate-independent fleet_mpg estimate
+(worksheet.live_fleet_mpg_estimate()) and, if it falls outside
+exceptions.DEFAULT_MPG_BAND, shows a non-blocking warning banner on the
+redirect -- the entry is never refused; mileage is a human's own
+attestation, and this route doesn't get to reject it, only flag it
+early instead of only after a full worksheet build.
 
 flask.g per-request connection lifetime, the same pattern every other
 app in this project already uses.
@@ -39,7 +51,14 @@ from typing import Any
 from flask import Flask, g, redirect, render_template, request, url_for
 
 from dispatch.common.db import bootstrap
-from dispatch.ifta.worksheet import InsufficientDataError, InvalidQuarterError, MissingRateError
+from dispatch.ifta.exceptions import DEFAULT_MPG_BAND
+from dispatch.ifta.mileage import record_mileage
+from dispatch.ifta.worksheet import (
+    InsufficientDataError,
+    InvalidQuarterError,
+    MissingRateError,
+    live_fleet_mpg_estimate,
+)
 from dispatch.ifta_clerk.dashboard import build_dashboard
 from dispatch.ifta_clerk.prepare import (
     AlreadySubmittedError,
@@ -112,7 +131,7 @@ def create_app(config: dict[str, Any]) -> Flask:
         except InvalidQuarterError as exc:
             return render_template(
                 "dashboard.html", error=str(exc), quarter=quarter, fuel_type=fuel_type,
-                data=None, banner=None, payment_recommendation=None,
+                data=None, banner=None, payment_recommendation=None, mileage_warning=None,
             ), 400
 
         banner = None
@@ -122,12 +141,16 @@ def create_app(config: dict[str, Any]) -> Flask:
             banner = {"kind": "submitted"}
         elif request.args.get("recommended"):
             banner = {"kind": "recommended"}
+        elif request.args.get("mileage_recorded"):
+            banner = {"kind": "mileage_recorded"}
 
         payment_recommendation = _payment_recommendation_for(config, data, quarter)
+        mileage_warning = request.args.get("mpg_warning")
 
         return render_template(
             "dashboard.html", error=None, quarter=quarter, fuel_type=fuel_type,
             data=data, banner=banner, payment_recommendation=payment_recommendation,
+            mileage_warning=mileage_warning,
         )
 
     @app.route("/prepare", methods=["POST"])
@@ -143,6 +166,7 @@ def create_app(config: dict[str, Any]) -> Flask:
                 "dashboard.html", error=f"Could not prepare this quarter: {exc}",
                 quarter=quarter, fuel_type=fuel_type, data=data, banner=None,
                 payment_recommendation=_payment_recommendation_for(config, data, quarter),
+                mileage_warning=None,
             ), 400
 
         return redirect(url_for("dashboard", quarter=quarter, fuel_type=fuel_type, prepared=1, exceptions=result["exception_count"]))
@@ -160,6 +184,7 @@ def create_app(config: dict[str, Any]) -> Flask:
                 "dashboard.html", error=f"Could not submit for approval: {exc}",
                 quarter=quarter, fuel_type=fuel_type, data=data, banner=None,
                 payment_recommendation=_payment_recommendation_for(config, data, quarter),
+                mileage_warning=None,
             ), 400
 
         return redirect(url_for("dashboard", quarter=quarter, fuel_type=fuel_type, submitted=1))
@@ -177,9 +202,64 @@ def create_app(config: dict[str, Any]) -> Flask:
                 "dashboard.html", error=f"Could not generate payment recommendation: {exc}",
                 quarter=quarter, fuel_type=fuel_type, data=data, banner=None,
                 payment_recommendation=_payment_recommendation_for(config, data, quarter),
+                mileage_warning=None,
             ), 400
 
         return redirect(url_for("dashboard", quarter=quarter, fuel_type=fuel_type, recommended=1))
+
+    @app.route("/record-mileage", methods=["POST"])
+    def record_mileage_route():
+        quarter = request.form.get("quarter") or _current_quarter()
+        fuel_type = request.form.get("fuel_type") or DEFAULT_FUEL_TYPE
+
+        unit_number = request.form.get("unit_number", "").strip()
+        jurisdiction = request.form.get("jurisdiction", "").strip().upper()
+        period_start = request.form.get("period_start", "").strip()
+        period_end = request.form.get("period_end", "").strip()
+        entered_by = request.form.get("entered_by", "").strip()
+        miles_raw = request.form.get("miles", "").strip()
+
+        errors = []
+        if not unit_number:
+            errors.append("unit is required")
+        if not jurisdiction:
+            errors.append("jurisdiction is required")
+        if not period_start:
+            errors.append("period start is required")
+        if not period_end:
+            errors.append("period end is required")
+        if not entered_by:
+            errors.append("entered by is required")
+        miles = None
+        if not miles_raw:
+            errors.append("miles is required")
+        else:
+            try:
+                miles = float(miles_raw)
+            except ValueError:
+                errors.append("miles must be a number")
+
+        if errors:
+            data = build_dashboard(get_ro(), quarter=quarter, fuel_type=fuel_type)
+            return render_template(
+                "dashboard.html", error=f"Could not record mileage: {'; '.join(errors)}",
+                quarter=quarter, fuel_type=fuel_type, data=data, banner=None,
+                payment_recommendation=_payment_recommendation_for(config, data, quarter),
+                mileage_warning=None,
+            ), 400
+
+        record_mileage(
+            get_write_conn(), unit_number=unit_number, jurisdiction=jurisdiction,
+            period_start=period_start, period_end=period_end, miles=miles, entered_by=entered_by,
+        )
+
+        redirect_args = {"quarter": quarter, "fuel_type": fuel_type, "mileage_recorded": 1}
+        estimate = live_fleet_mpg_estimate(get_ro(), quarter=quarter, fuel_type=fuel_type)
+        low, high = DEFAULT_MPG_BAND
+        if estimate is not None and not (low <= estimate <= high):
+            redirect_args["mpg_warning"] = f"{estimate:.2f}"
+
+        return redirect(url_for("dashboard", **redirect_args))
 
     return app
 

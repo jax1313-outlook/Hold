@@ -120,11 +120,41 @@ to reach — generating the recommendation is the entire action.
 Idempotent: a worksheet that already has one returns it rather than
 regenerating, since the sealed numbers it's built from can never change.
 
+## Mileage Entry (`dispatch.ifta.mileage`)
+
+Added 2026-08-05, resolving `IFTA_CLERK_BLUEPRINT_v1.md` section 12's
+open question 2 ("is manual entry acceptable as the ongoing source of
+truth indefinitely?") — yes, permanently. There is no ELD/GPS/odometer-
+device integration anywhere in this codebase, and none is planned; this
+was already decided twice before this route existed (the original
+DispatchPilot direction, restated unchanged in the blueprint's section
+3) — this app just gives that standing decision a real front door
+instead of leaving mileage entry as the one CLI-only write action in an
+otherwise browser-driven workflow (flagged directly in
+`docs/pilot/DISPATCH_PILOT_RUN_2_REPORT_v1.md`'s findings).
+
+`POST /record-mileage` → `dispatch.ifta.mileage.record_mileage()` — the
+same real write `tools/mileage_worksheet.py` already used, moved out of
+the tool so neither duplicates the `INSERT`; the CLI is now a thin
+wrapper around it, unchanged in behavior. The entry itself is never
+refused for implausibility — mileage is a human's own attestation, and
+this route doesn't get to reject it — but after a successful write it
+computes a live, rate-independent estimate
+(`worksheet.live_fleet_mpg_estimate()`, sharing the exact aggregation
+`build()`/`preview()` already use) and shows a non-blocking warning if
+it would fall outside `exceptions.DEFAULT_MPG_BAND` — the same band the
+`fleet_mpg_out_of_band` detector already checks, just surfaced earlier,
+at entry time, instead of only after a full worksheet build. This
+directly targets the real, twice-observed operational risk both pilot
+runs found: manual mileage is "this system's one input with no
+independent cross-check."
+
 ## Doctrine, restated as commitments for this app specifically
 
-Updated 2026-08-04, first for `prepare.py`'s two write actions and then
-for `recommend.py`'s — each update corrects the section rather than
-leaving an earlier, now-inaccurate version in place:
+Updated 2026-08-04, first for `prepare.py`'s two write actions, then for
+`recommend.py`'s, then 2026-08-05 for `record_mileage_route`'s — each
+update corrects the section rather than leaving an earlier, now-
+inaccurate version in place:
 
 - **Evidence First** — every number is read exactly as Lane C's router
   already computed it; nothing here re-derives or second-guesses it.
@@ -138,12 +168,15 @@ leaving an earlier, now-inaccurate version in place:
   fully read-only; the write actions call existing, already-governed
   Lane C/Lane B functions, or write a single file to Archive, never a
   new database write path.
-- **Human Authority** — Preparation, Submission, and generating a
-  payment recommendation are each a distinct, deliberate human action,
-  never bundled or automatic; `attempt_seal()` is unreachable from this
-  app entirely, checked structurally (`ast`-parsed imports, not just
-  this docstring's promise) — sealing a worksheet still requires the
-  same real Queue approval it always did.
+- **Human Authority** — Preparation, Submission, generating a payment
+  recommendation, and recording mileage are each a distinct, deliberate
+  human action, never bundled or automatic; `attempt_seal()` is
+  unreachable from this app entirely, checked structurally (`ast`-parsed
+  imports, not just this docstring's promise) — sealing a worksheet
+  still requires the same real Queue approval it always did. Mileage
+  entry stays entirely human-attested too — no device integration ever
+  supplies or overrides a mileage figure, and the plausibility warning
+  never refuses an entry, only flags it.
 - **Recommendation Packages Only / no QuickBooks / no DocuSign / no
   Filing** — the recommendation *is* the deliverable now, not just a
   future placeholder: `generate_payment_recommendation()` writes a
@@ -152,6 +185,7 @@ leaving an earlier, now-inaccurate version in place:
   app for it to call.
 
 See `docs/ifta-clerk/REVIEW_DASHBOARD_NOTES_v1.md`,
-`docs/ifta-clerk/PREPARE_THIS_QUARTER_NOTES_v1.md`, and
-`docs/ifta-clerk/PAYMENT_RECOMMENDATION_NOTES_v1.md` for the full build
-record, findings, and test coverage.
+`docs/ifta-clerk/PREPARE_THIS_QUARTER_NOTES_v1.md`,
+`docs/ifta-clerk/PAYMENT_RECOMMENDATION_NOTES_v1.md`, and
+`docs/ifta-clerk/MILEAGE_ENTRY_NOTES_v1.md` for the full build record,
+findings, and test coverage.

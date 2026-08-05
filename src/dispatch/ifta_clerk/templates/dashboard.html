@@ -22,6 +22,12 @@
 <p class="banner banner-success">Submitted for approval — visible in the Queue now.</p>
 {% elif banner and banner.kind == "recommended" %}
 <p class="banner banner-success">Payment recommendation generated — see below.</p>
+{% elif banner and banner.kind == "mileage_recorded" %}
+<p class="banner banner-success">Mileage recorded.</p>
+{% endif %}
+
+{% if mileage_warning %}
+<p class="banner banner-warning">This entry would put fleet MPG at {{ mileage_warning }} for {{ quarter }} — outside the usual 4.0–9.5 range. Not blocked, just worth checking before this quarter is prepared.</p>
 {% endif %}
 
 {% if not error %}
@@ -92,6 +98,21 @@
 {% else %}
 <p class="empty">No mileage recorded yet this quarter.</p>
 {% endif %}
+
+<details class="mileage-entry">
+  <summary>Record mileage</summary>
+  <form action="{{ url_for('record_mileage_route') }}" method="post" class="action-form mileage-form">
+    <input type="hidden" name="quarter" value="{{ quarter }}">
+    <input type="hidden" name="fuel_type" value="{{ fuel_type }}">
+    <label>Unit <input type="text" name="unit_number" placeholder="T-104" required></label>
+    <label>Jurisdiction <input type="text" name="jurisdiction" placeholder="TX" maxlength="2" required></label>
+    <label>Period start <input type="date" name="period_start" required></label>
+    <label>Period end <input type="date" name="period_end" required></label>
+    <label>Miles <input type="number" name="miles" step="0.1" min="0" required></label>
+    <label>Entered by <input type="text" name="entered_by" placeholder="human:mike" required></label>
+    <button class="btn btn-run" type="submit">Record Mileage</button>
+  </form>
+</details>
 
 <h2>Fuel by jurisdiction</h2>
 {% if data.fuel_by_jurisdiction %}

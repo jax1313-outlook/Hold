@@ -2,7 +2,11 @@
 """Manual mileage entry — writes MileageRecords (source=manual_worksheet).
 
 v1 reality (contracts/mileage_record.schema.json): entered by Mike via
-this tool; the schema is identical when Dispatch Ops automates it later.
+this tool (or, since 2026-08-05, dispatch.ifta_clerk's mileage-entry
+route); the schema is identical when Dispatch Ops automates it later.
+The real write lives in dispatch.ifta.mileage.record_mileage() so this
+CLI and the UI route share one path rather than two copies of the same
+INSERT — this file is a thin argparse wrapper around it.
 
 Usage:
     python tools/mileage_worksheet.py --config path/to/config.json \
@@ -19,38 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from dispatch.common.config import load_config  # noqa: E402
 from dispatch.common.db import bootstrap  # noqa: E402
-from dispatch.common.ids import new_ulid  # noqa: E402
-
-
-def record_mileage(
-    config: dict,
-    *,
-    unit_number: str,
-    jurisdiction: str,
-    period_start: str,
-    period_end: str,
-    miles: float,
-    entered_by: str,
-    odometer_start: int | None = None,
-    odometer_end: int | None = None,
-    source: str = "manual_worksheet",
-) -> str:
-    conn = bootstrap(config["database"])
-    mileage_record_id = new_ulid()
-    conn.execute(
-        """
-        INSERT INTO mileage_records (
-            mileage_record_id, unit_number, period_start, period_end,
-            jurisdiction, miles, source, odometer_start, odometer_end,
-            entered_by, schema_version
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '1.0')
-        """,
-        (
-            mileage_record_id, unit_number, period_start, period_end,
-            jurisdiction, miles, source, odometer_start, odometer_end, entered_by,
-        ),
-    )
-    return mileage_record_id
+from dispatch.ifta.mileage import record_mileage  # noqa: E402
 
 
 def main() -> None:
@@ -67,8 +40,9 @@ def main() -> None:
     args = parser.parse_args()
 
     config = load_config(args.config)
+    conn = bootstrap(config["database"])
     mileage_record_id = record_mileage(
-        config,
+        conn,
         unit_number=args.unit_number,
         jurisdiction=args.jurisdiction,
         period_start=args.period_start,
