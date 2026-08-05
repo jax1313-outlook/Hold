@@ -14,6 +14,7 @@ from dispatch.ifta.worksheet import (
     InvalidQuarterError,
     MissingRateError,
     latest_worksheet_for,
+    live_fleet_mpg_estimate,
     quarter_bounds,
 )
 from tests.lane_c.conftest import insert_fuel_record, insert_mileage_record
@@ -104,6 +105,31 @@ def test_build_captures_which_records_fed_each_jurisdiction_line(ifta_engine, db
     ok_related = json.loads(ok_line["related_record_ids"])
     assert tx_related == {"mileage_record_ids": [tx_mileage_id], "fuel_record_ids": [tx_fuel_id]}
     assert ok_related == {"mileage_record_ids": [ok_mileage_id], "fuel_record_ids": [ok_fuel_id]}
+
+
+def test_live_fleet_mpg_estimate_matches_a_real_build_with_no_rate_needed(ifta_engine, db_conn):
+    """Deliberately does NOT call rates.insert_rate() at all -- proving
+    the estimate needs no rate table, unlike preview()."""
+    insert_mileage_record(
+        db_conn, unit_number="T-100", jurisdiction="TX",
+        period_start="2026-04-01", period_end="2026-06-30", miles=700.0,
+    )
+    insert_fuel_record(db_conn, jurisdiction="TX", purchase_date="2026-04-15", gallons_normalized=100.0)
+
+    estimate = live_fleet_mpg_estimate(ifta_engine._ro_conn, quarter="2026-Q2", fuel_type="diesel")
+    assert estimate == pytest.approx(7.0)
+
+
+def test_live_fleet_mpg_estimate_returns_none_with_no_data_at_all(ifta_engine):
+    assert live_fleet_mpg_estimate(ifta_engine._ro_conn, quarter="2026-Q2", fuel_type="diesel") is None
+
+
+def test_live_fleet_mpg_estimate_returns_none_with_mileage_but_no_fuel(ifta_engine, db_conn):
+    insert_mileage_record(
+        db_conn, unit_number="T-100", jurisdiction="TX",
+        period_start="2026-04-01", period_end="2026-06-30", miles=700.0,
+    )
+    assert live_fleet_mpg_estimate(ifta_engine._ro_conn, quarter="2026-Q2", fuel_type="diesel") is None
 
 
 def test_missing_rate_raises_rather_than_fabricating(ifta_engine, db_conn):

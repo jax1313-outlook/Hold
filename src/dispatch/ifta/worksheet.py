@@ -300,6 +300,30 @@ def preview(read_only_conn: sqlite3.Connection, *, quarter: str, fuel_type: str,
     }
 
 
+def live_fleet_mpg_estimate(read_only_conn: sqlite3.Connection, *, quarter: str, fuel_type: str) -> float | None:
+    """A live fleet_mpg estimate for this quarter/fuel_type right now --
+    deliberately independent of any rate table, unlike preview(), since
+    fleet_mpg = total_miles / total_tractor_gallons never involves a
+    rate. Built for dispatch.ifta_clerk's mileage-entry route: give
+    early, non-blocking plausibility feedback (against the same
+    DEFAULT_MPG_BAND exceptions.py's fleet_mpg_out_of_band detector
+    already uses) the moment mileage is entered, without needing a rate
+    table to exist yet.
+
+    Returns None on insufficient data (no mileage, or no tractor fuel,
+    recorded yet) rather than raising -- this is a soft signal, not a
+    worksheet build; a caller with nothing to estimate from should just
+    skip the check, never fabricate a number or block the entry that was
+    just made. Shares _aggregate_mileage/_aggregate_fuel with build() and
+    preview() so this is the same computation, not a second one."""
+    start, end = quarter_bounds(quarter)
+    _, total_miles, _ = _aggregate_mileage(read_only_conn, start, end)
+    _, total_tractor_gallons, _ = _aggregate_fuel(read_only_conn, start, end, fuel_type)
+    if total_miles <= 0 or total_tractor_gallons <= 0:
+        return None
+    return total_miles / total_tractor_gallons
+
+
 class WorksheetEngine:
     """write_conn owns the ifta_* tables (read-write); read_only_conn is a
     SQLite mode=ro connection to the same database file, used for every
