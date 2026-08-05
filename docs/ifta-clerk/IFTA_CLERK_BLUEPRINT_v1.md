@@ -28,6 +28,29 @@ mistaken for a filed worksheet). §6.1 specifies how each is satisfied by
 construction. This is design approval — the code change itself still
 requires its own launch package before it's written.
 
+**Amendment 4 (2026-08-04):** reconciles this document against two
+things actually built and merged since Amendment 3, and two findings
+made during that work that this document did not anticipate.
+`dispatch.ifta.worksheet.preview()` (§6.1, §12.5) is built, tested,
+walked through, and merged — no longer a design pending
+implementation; see `docs/ifta-clerk/WORKSHEET_PREVIEW_MODE_NOTES_v1.md`
+and `WORKSHEET_PREVIEW_MODE_WALKTHROUGH_REPORT_v1.md`. Category 2 Live
+Indicators (§8, Phase 2) is also built and merged, but at a **corrected
+scope of 4 detectors, not 5**: `broken_evidence_linkage`, found during
+design to call `EvidenceSpine.retrieve()` — which writes a real
+`audit_log` row on every call and, on a hash mismatch, a real urgent
+Queue item — was excluded rather than accepted as "live," since that's
+exactly the kind of dashboard-viewing side effect Category 2 exists to
+rule out. Separately, folding the five worksheet-dependent detectors into
+Category 2 via `preview()` — which §8's original text treated as an
+automatic unlock once preview mode existed — was, when preview mode
+actually landed, treated as its own explicit decision rather than
+automatic, and deferred. See
+`docs/ifta-clerk/LIVE_INDICATORS_NOTES_v1.md` and
+`LIVE_INDICATORS_WALKTHROUGH_REPORT_v1.md`. §3, §6, §6.1, §7, §8, §12,
+and §13 are updated below to match reality as built, not as originally
+projected.
+
 ## 1. Executive Summary — IFTA Tool vs. IFTA Clerk
 
 **An IFTA Tool** moves Mike's existing clerical work from a terminal
@@ -112,19 +135,31 @@ unexercised, and two pieces are genuine, unsolved gaps.
   five (`odometer_discontinuity`, `active_truck_days_no_mileage`,
   `broken_evidence_linkage`, `late_arrival_closed_quarter`,
   `reefer_in_propulsion`) take only a read-only connection and a date
-  range — **no worksheet required, real-time, any time.** The other five
-  (`fuel_no_miles`, `miles_no_fuel_gap`, `fleet_mpg_out_of_band`,
+  range — **no worksheet required, real-time, any time**, by function
+  signature. This split is verified directly against `exceptions.py`'s
+  real function signatures, not assumed. **Signature eligibility is not
+  the same as safe-to-call-repeatedly-with-no-side-effects, though** —
+  building §8's actual live dashboard (`dispatch.ifta.live_indicators`,
+  merged 2026-08-04) found that `broken_evidence_linkage` specifically
+  calls `EvidenceSpine.retrieve()`, which always writes a real
+  `audit_log` row and, on a hash mismatch, a real urgent Queue item — a
+  side effect from merely viewing a dashboard. It was excluded from the
+  live module on that basis; see §8. The other four
+  (`odometer_discontinuity`, `active_truck_days_no_mileage`,
+  `late_arrival_closed_quarter`, `reefer_in_propulsion`) are genuinely
+  side-effect-free and are the ones actually live today. The remaining
+  five (`fuel_no_miles`, `miles_no_fuel_gap`, `fleet_mpg_out_of_band`,
   `rate_version_mismatch`, `corner_clipping`) take a built worksheet
   dict — they are inherently scoped to a computed aggregate (fleet MPG,
-  taxable gallons) that doesn't exist until a worksheet does. This split
-  is verified directly against `exceptions.py`'s real function
-  signatures, not assumed.
+  taxable gallons) that doesn't exist until a worksheet does.
 - **Worksheet engine, package builder (Lane C).** `WorksheetEngine.build()`,
   `submit_for_approval()`, `attempt_seal()` are real, tested, and already
   enforce every relevant rule (no fabricated rate, no seal before
   approval, draft-only until sealed). The Clerk calls these same
   functions — it does not need new ones. What changes is *what calls
-  them and when* (§10).
+  them and when* (§10). `WorksheetEngine`'s module also now includes
+  `preview()` (§6.1), built and merged 2026-08-04 — the identical spec
+  3.5 arithmetic, computed on demand, never persisted.
 - **Queue (Lane B).** Already the correct, only approval mechanism.
   Proven live twice now (two real pilot runs) that an IFTA approval item
   can be found and decided through the real Queue UI. Unchanged by this
@@ -149,7 +184,7 @@ already true of the real, built pipeline.
 | 4. Fuel + Expense record creation | Built (Router), unchanged |
 | 5. Mileage / jurisdiction accumulation | Fuel side built; **mileage input is an open gap** (§3, §12) |
 | 6. IFTA workspace | **Resolved — read-only, §5** |
-| 7. Exception queue | Built (ten detectors + real Queue items); **live-preview split analyzed in §8** |
+| 7. Exception queue | Built (ten detectors + real Queue items); **live-preview split built in §8 — 4 of 10 detectors live today, see amendment 4** |
 | 8. Review dashboard | **Not built — designed in §7** |
 | 9. Mike approval | Built, proven live twice, unchanged |
 | 10. IFTA package | Built (`attempt_seal`'s bundle), unchanged |
@@ -203,30 +238,32 @@ through the one function that happens to compute the numbers.
 2. **Live estimate — read-only, computed on demand, never persisted.**
    For the dashboard to show "here's roughly where the quarter stands"
    *before* anyone has decided it's time to build, something has to run
-   the spec 3.5 arithmetic without writing anything. This does not exist
-   today.
+   the spec 3.5 arithmetic without writing anything. **Built and merged
+   2026-08-04** — `dispatch.ifta.worksheet.preview()`, see §6.1.
 3. **The one real, deliberate Build — persists, exactly as it does
    today.** When Mike (or the Phase 3 "Prepare This Quarter" trigger,
    §10) actually decides the quarter is ready, `WorksheetEngine.build()`
    runs for real, once, producing the real draft worksheet, real
    exceptions, and a real audit trail — unchanged from today.
 
-**Recommendation for closing moment 2, not built now, flagged for its
-own future approval:** add an optional non-persisting mode to
-`WorksheetEngine` itself (e.g. a `preview()` method, or `build(...,
-persist=False)`) that runs the identical spec 3.5 arithmetic and returns
-the identical shape of result, skipping only the two `INSERT`s. This
-keeps the formula in exactly one place — the same tested function, not a
-second reimplementation — while giving the dashboard a way to show a
-current-estimate number that is, by construction, never mistaken for a
-real worksheet, because nothing was ever written. This is a small,
-narrowly-scoped change to `worksheet.py`, which is why it is named as a
-recommendation here rather than built: it touches a file this session's
-own `build/ifta-ui` launch package treated as forbidden-to-edit for good
-reason (it's Lane C's frozen core), and a change to it — however small —
-deserves the same explicit approval this project has given every prior
-change to already-merged lane code (the Evidence Record v1.1 amendment
-is the precedent for how that conversation goes).
+**Closing moment 2 — built, 2026-08-04, per the recommendation below,
+implemented as originally proposed.** A module-level `preview()`
+function in `worksheet.py` runs the identical spec 3.5 arithmetic and
+returns the identical shape of result, skipping the two `INSERT`s — not
+a `build(..., persist=False)` flag or a `WorksheetEngine` method as the
+two named alternatives suggested, but a standalone function taking only
+a read-only connection, so condition 1 (§6.1) is structural rather than
+conventional: there is no write-capable connection in scope to
+accidentally use. The arithmetic itself
+(`_aggregate_mileage`/`_aggregate_fuel`/`_compute_worksheet_lines`) is
+now shared between `build()` and `preview()` as module-level functions,
+keeping the formula in exactly one place as intended. Went through its
+own launch-package-equivalent approval (the six conditions given
+directly, §6.1), its own tests, its own live walkthrough, and explicit
+merge approval — the same discipline the Evidence Record v1.1 amendment
+set as precedent for changing already-merged lane code. See
+`docs/ifta-clerk/WORKSHEET_PREVIEW_MODE_NOTES_v1.md` and
+`WORKSHEET_PREVIEW_MODE_WALKTHROUGH_REPORT_v1.md`.
 
 **What a live estimate is not.** It is not a second source of truth, not
 a competing number, and never appears without a label distinguishing it
@@ -237,13 +274,16 @@ live-estimate path stops being shown at all for that quarter. There is
 never a moment where both a live estimate and a real worksheet's numbers
 are on screen at once claiming to answer the same question.
 
-### 6.1 Preview Mode — approved in principle, 2026-08-04, with six conditions
+### 6.1 Preview Mode — approved and built, 2026-08-04
 
-Approved as a future addition to `WorksheetEngine`, not built yet
-(§12.5's approval gate still applies to the actual code change — this
-section specifies *how* that future change satisfies each condition,
-not an implementation). Conditions taken verbatim; each mapped to a
-concrete design commitment:
+Approved in principle subject to six explicit conditions, then built,
+tested, walked through, and merged the same day
+(`docs/ifta-clerk/WORKSHEET_PREVIEW_MODE_NOTES_v1.md`,
+`WORKSHEET_PREVIEW_MODE_WALKTHROUGH_REPORT_v1.md`). Conditions taken
+verbatim; each mapped to how the merged code actually satisfies it —
+updated below from "will satisfy by construction" to "does satisfy,
+verified by both automated tests (`inspect`/`ast`-based, not just
+today's return value) and a live walkthrough against a real database":
 
 1. **No database writes.** `preview()` is constructed with only a
    read-only connection — the same `ro_conn` (`readonly.open_read_only()`)
@@ -261,14 +301,16 @@ concrete design commitment:
    and produces no audit trail entry — silence here is correct, not a
    gap, the same way viewing a report today writes no audit entry.
 4. **No approval path activation.** `preview()` never receives or
-   constructs a `QueueStore`. The five worksheet-scoped exception
-   detectors (§3, §8) get called *directly* against the preview's
-   in-memory result — the same pure-function pattern already used for
-   the five worksheet-free detectors — never through `run_all_detectors()`,
-   which is the only code that creates Queue items. No code path from
-   `preview()` can reach `submit_for_approval()` or `attempt_seal()`
-   either, since both require a real `ifta_worksheet_id` to look up a
-   persisted row (condition 2 already makes that impossible to supply).
+   constructs a `QueueStore`, never imports `dispatch.ifta.package`, and
+   never calls `run_all_detectors()` — the only code that creates Queue
+   items. (The five worksheet-scoped exception detectors *could* be
+   called directly against `preview()`'s in-memory result the same
+   pure-function way the four live worksheet-free ones already are — but
+   as of this document's Amendment 4, nothing actually wires that up
+   yet; see open question 8, §12.) No code path from `preview()` can
+   reach `submit_for_approval()` or `attempt_seal()` either, since both
+   require a real `ifta_worksheet_id` to look up a persisted row
+   (condition 2 already makes that impossible to supply).
 5. **Clearly labeled PREVIEW.** The returned shape carries an explicit
    `"status": "preview"` — a value that never appears in the real
    `ifta_worksheets.status` column (`draft` / `sealed` only, enforced by
@@ -310,9 +352,11 @@ per §5's resolution. Seven panels:
    re-verification, the exact pattern Lane B's Queue detail page already
    uses for evidence previews. Reused directly, not reimplemented.
 7. **Estimated tax position** — before a real worksheet exists, §6's
-   live estimate (once built); after one exists, Reports' own pattern —
-   `total_net_tax` read exactly as stored, never recomputed. Never both
-   at once, per §6.
+   live estimate, now built (`preview()`, §6.1) and ready to call; after
+   one exists, Reports' own pattern — `total_net_tax` read exactly as
+   stored, never recomputed. Never both at once, per §6. This panel
+   itself — the dashboard screen that would call `preview()` — is not
+   built; that's Phase 3 (§13), separate from the function it would call.
 
 All seven fit inside the read-only, no-recomputation boundary Lane D's
 charter already established. None of them requires a new writer.
@@ -333,18 +377,43 @@ about how they're created; this dashboard only makes them visible
 without requiring Mike to open the Queue and read subject lines one at a
 time.
 
-**Category 2 — Live Indicators.** Findings from the five worksheet-free
-detectors named in §3 (`odometer_discontinuity`,
-`active_truck_days_no_mileage`, `broken_evidence_linkage`,
-`late_arrival_closed_quarter`, `reefer_in_propulsion`), called directly
-— they are already pure, side-effect-free functions returning finding
-lists — **without ever calling `run_all_detectors()`**, so nothing is
+**Category 2 — Live Indicators. Built and merged, 2026-08-04, at a
+corrected scope of 4 detectors** — `dispatch.ifta.live_indicators.live_indicators()`
+(`docs/ifta-clerk/LIVE_INDICATORS_NOTES_v1.md`,
+`LIVE_INDICATORS_WALKTHROUGH_REPORT_v1.md`). Of the five worksheet-free
+detectors named in §3, four are genuinely pure and side-effect-free —
+`odometer_discontinuity`, `active_truck_days_no_mileage`,
+`late_arrival_closed_quarter`, `reefer_in_propulsion` — and are called
+directly, **without ever calling `run_all_detectors()`**, so nothing is
 persisted and no Queue item is created just because Mike opened a
-dashboard. If §6's recommended `WorksheetEngine` preview mode is later
-approved and built, the other five detectors (which need a worksheet
-dict) can join this live category too, computed against the in-memory
-preview worksheet — until then, those five remain visible only after a
-real build, in Category 1.
+dashboard. Each finding carries a severity (`critical`/`warning`/`notice`,
+a closed vocabulary deliberately distinct from Queue's own
+`urgent`/`today`/`whenever` priorities, since a live indicator never
+touches the Queue).
+
+**`broken_evidence_linkage` was found, during design, not to belong in
+this category despite matching its function signature.** It calls
+`EvidenceSpine.retrieve()`, which unconditionally writes a real
+`audit_log` row every call and, on a hash mismatch, a real urgent Queue
+item — a genuine side effect from merely viewing a dashboard, exactly
+what Category 2 exists to rule out. It was excluded rather than accepted
+silently, and remains available today only through a real
+`build()` + `run_all_detectors()`, as a Category 1 (confirmed) exception.
+A future retrieve-without-side-effects path could resolve this — named
+as an open question, §12.
+
+**§6's preview mode is also now built** (§6.1) — but folding the other
+five, worksheet-dependent detectors into Category 2 by computing them
+against an in-memory `preview()` result, which this document originally
+described as something that "can join this live category too" once
+preview mode existed, turned out to be its own explicit decision when
+the moment actually arrived, not an automatic unlock: asked directly,
+Mike chose to hold Category 2 at its current scope and treat that
+folding-in as a separate follow-on. `preview()`'s own failure modes
+(`InsufficientDataError`, `MissingRateError`) would also need their own
+handling inside a "live" caller before that could safely happen — a real
+design question for that follow-on, not resolved here. Named as an open
+question, §12.
 
 **The rule that keeps these from ever being confused:** Category 2
 findings are never queued, never counted toward "open exceptions" in any
@@ -413,7 +482,8 @@ code, and ready for the day real data can test it.
 
 Not defended, not discarded. Its real, tested machinery — `rates.insert_rate()`,
 `WorksheetEngine.build()`, `run_all_detectors()`, `submit_for_approval()`,
-`attempt_seal()` — is exactly what the Clerk should call. The mistake
+`attempt_seal()`, and now also `preview()` and `live_indicators()` (§6.1,
+§8) — is exactly what the Clerk should call. The mistake
 wasn't the underlying calls; it was making *button-clicking through
 them* the primary interface. Recommendation: the manual UI remains
 useful as a secondary, explicit **override and inspection tool** —
@@ -471,17 +541,31 @@ not decided unilaterally here.
 4. **`build/ifta-ui`'s fate** (§10): merge as a secondary override tool,
    merge but relabel its role in its own docs, or hold it unmerged
    pending the Clerk's first phase?
-5. ~~**`WorksheetEngine` preview-mode extension**~~ — **APPROVED IN
-   PRINCIPLE, 2026-08-04**, subject to six conditions (no database
-   writes, no worksheet IDs, no audit status changes, no approval path
-   activation, clearly labeled PREVIEW, cannot be mistaken for a filed
-   worksheet) — see §6.1 for how each is satisfied by construction. This
-   is approval of the *design*; the actual code change to `worksheet.py`
-   still goes through its own launch package, tests, and walkthrough
-   before merge, the same as every other piece of this system.
+5. ~~**`WorksheetEngine` preview-mode extension**~~ — **APPROVED AND
+   BUILT, 2026-08-04.** All six conditions satisfied and independently
+   verified, both by automated tests and a live walkthrough — see §6.1,
+   `docs/ifta-clerk/WORKSHEET_PREVIEW_MODE_NOTES_v1.md`,
+   `WORKSHEET_PREVIEW_MODE_WALKTHROUGH_REPORT_v1.md`. Closed.
 6. **Who owns Stage 1-4 of §9** — obtaining and holding the real
    `ANTHROPIC_API_KEY`, and where the validation trial actually runs?
    Outside this repository's or this build session's control either way.
+7. **`broken_evidence_linkage`'s future path.** It's excluded from
+   Category 2 Live Indicators (§8) because `EvidenceSpine.retrieve()`
+   always writes an audit entry and can create an urgent Queue item on a
+   hash mismatch — a real side effect from viewing a dashboard. Should a
+   lighter-weight, genuinely side-effect-free existence-and-hash check be
+   built specifically for this live-dashboard use case (duplicating a
+   small slice of `retrieve()`'s logic, matching this project's own
+   cross-boundary-duplication precedent), or does this detector simply
+   stay Category 1-only, confirmed-exceptions-after-a-real-build,
+   permanently? Not decided here.
+8. **Folding the five worksheet-dependent detectors into Category 2 via
+   `preview()`.** §8 originally treated this as automatic once preview
+   mode existed; when preview mode actually landed, Mike chose to treat
+   it as a separate decision and held Category 2 at 4 detectors. Is this
+   worth doing as its own follow-on, and if so, how should `preview()`'s
+   `InsufficientDataError`/`MissingRateError` be handled inside a "live,
+   never crashes, never queues" caller? Not decided here.
 
 ## 13. Phased Build Plan (roadmap, not a launch package)
 
@@ -492,17 +576,24 @@ the next.
   `extraction_confidence` and Category 1 (Confirmed) exceptions in one
   place, read-only. Smallest possible slice, zero new write paths,
   immediately useful regardless of what happens next.
-- **Phase 2 — Category 2 Live Indicators.** Wire the five worksheet-free
-  detectors (§8) directly into the dashboard, read-only, never queued.
-  Still no `WorksheetEngine` change needed — these five already run
-  without a worksheet today.
+- **Phase 2 — Category 2 Live Indicators. Built and merged, 2026-08-04**
+  (§8) — at a corrected scope of 4 detectors, not the 5 originally named:
+  `broken_evidence_linkage` was found during design to write a real
+  audit entry (and, on a hash mismatch, a real Queue item) on every
+  call, and was excluded rather than accepted as side-effect-free. No
+  `WorksheetEngine` change was needed for the 4 that shipped — confirmed
+  true as built, not just projected.
 - **Phase 3 — The Review Dashboard, fully assembled** (§7). All seven
   panels, once mileage's role (§12.2) and the confidence threshold
-  (§12.3) are answered. "Estimated tax position" shows only Category
-  1/real-worksheet numbers until Phase 4.
-- **Phase 4 — `WorksheetEngine` preview mode** (§6, §12.5, pending its
-  own explicit approval). Unlocks: live tax estimates before a real
-  build, and the remaining five detectors joining Category 2.
+  (§12.3) are answered. "Estimated tax position" can now call the real,
+  already-built `preview()` (Phase 4 is done); this phase is the
+  dashboard screen itself, still not built.
+- **Phase 4 — `WorksheetEngine` preview mode. Built and merged,
+  2026-08-04** (§6.1, §12.5). Unlocked live tax estimates before a real
+  build, exactly as designed. Did **not** automatically unlock the
+  remaining five detectors joining Category 2, as originally projected —
+  that turned out to be its own explicit decision (open question 8,
+  §12), deferred rather than bundled in.
 - **Phase 5 — The Clerk's own trigger.** A single "Prepare This Quarter"
   action that calls `WorksheetEngine.build()` + `run_all_detectors()` +
   `submit_for_approval()` in sequence, itself — replacing three manual
