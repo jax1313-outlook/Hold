@@ -497,6 +497,38 @@ column, `_resolve_line_evidence()` in `package.py`, and the
 `worksheet.py`, all purely additive to computation spec 3.5's
 arithmetic.
 
+### Mileage source strategy / mileage entry UI merge approval — APPROVED, 2026-08-05
+
+Mike directed the last item of his 5-item work list ("mileage source
+strategy"). Investigation found the blueprint had already posed this
+exact question as an open item (section 12, question 2: "Is manual
+entry acceptable as the ongoing source of truth indefinitely?"), and
+that ELD integration had already been ruled out explicitly, twice, well
+before this session (the original DispatchPilot direction, and blueprint
+section 3, unchanged). Mike confirmed the presented design directly
+("yes, go ahead and build it"): manual entry stands as the permanent
+source of truth; a real entry UI closes the CLI-only gap both pilot
+runs flagged; a non-blocking plausibility warning (reusing
+`exceptions.DEFAULT_MPG_BAND`, not a new threshold) surfaces at entry
+time what `fleet_mpg_out_of_band` would otherwise only catch after a
+full worksheet build — directly targeting the risk both pilot runs
+independently observed twice.
+
+Live-verified against the real running server
+(`docs/ifta-clerk/MILEAGE_ENTRY_NOTES_v1.md`): the failure path with
+every field missing, a real fuel CSV through the real intake pipeline,
+a real mileage entry that triggers the warning and is confirmed written
+anyway (never refused) via raw `sqlite3`, and a second real entry in a
+fresh quarter confirmed to produce no warning at all. Mike then approved
+the merge directly ("Merge Yes").
+
+**Unblocked:** `build/mileage-entry-ui` merges into `integration` —
+`dispatch.ifta.mileage.record_mileage()` (moved out of
+`tools/mileage_worksheet.py` so the CLI and the UI share one write
+path), `worksheet.live_fleet_mpg_estimate()`, and
+`POST /record-mileage`, the app's fourth write-capable route. This
+closes all five items of Mike's original work list.
+
 ## Open
 
 (none — all four originally-held items, the Lane A, Lane B, Lane C, and
@@ -506,6 +538,6 @@ WorksheetEngine Preview Mode merge approval, the Category 2 Live
 Indicators merge approval, the IFTA Clerk Blueprint reconciliation merge
 approval, the Review Dashboard merge approval, the Prepare This Quarter
 / Submit for Approval merge approval, the Recommended Payment Amount
-merge approval, the OCR fenced-JSON fix merge approval, and the Archive
-Package evidence-refs merge approval above, are resolved as of
-2026-08-05)
+merge approval, the OCR fenced-JSON fix merge approval, the Archive
+Package evidence-refs merge approval, and the mileage source strategy /
+mileage entry UI merge approval above, are resolved as of 2026-08-05)
