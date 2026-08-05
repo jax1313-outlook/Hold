@@ -1,12 +1,15 @@
 """dispatch.shell -- Mike's one bookmark.
 
-Mounts Queue's and Reports' existing, completely unmodified Flask apps
-at /queue and /reports via Werkzeug's DispatcherMiddleware -- their
-route definitions, templates, and static files change not at all; this
-module never imports their internals, only their public create_app().
-Adds two things neither existing app has: a home dashboard (real open
-queue by priority, real DispatchPilot folder state, real recent saved
-reports) and a /pilot page with a real "Process Inbox" button.
+Mounts Queue's, Reports', and the IFTA Clerk's existing, completely
+unmodified Flask apps at /queue, /reports, and /ifta-clerk via
+Werkzeug's DispatcherMiddleware -- their route definitions, templates,
+and static files change not at all; this module never imports their
+internals, only their own public entry points. Adds two things neither
+existing app has: a home dashboard (real open queue by priority, real
+DispatchPilot folder state, real recent saved reports, and a prominent
+link to the IFTA Clerk -- its primary user experience per
+IFTA_CLERK_BLUEPRINT_v1 section 7) and a /pilot page with a real
+"Process Inbox" button.
 
 Zero new tables, zero new contracts, zero writes of its own -- the only
 write action calls dispatch.pilot.intake.PilotIntake.process_inbox(),
@@ -28,6 +31,7 @@ from flask import Flask, g, render_template
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
 from dispatch.common.db import bootstrap
+from dispatch.ifta_clerk.app import create_app as create_ifta_clerk_app
 from dispatch.pilot.intake import PilotIntake
 from dispatch.queue.app import create_app as create_queue_app
 from dispatch.queue.store import QueueStore
@@ -127,12 +131,14 @@ def create_app(config: dict[str, Any]) -> Flask:
     shell = _build_shell_app(config)
     queue_app = create_queue_app(config)
     reports_app = create_reports_app(config)
+    ifta_clerk_app = create_ifta_clerk_app(config)
 
     shell.wsgi_app = DispatcherMiddleware(
         shell.wsgi_app,
         {
             "/queue": queue_app,
             "/reports": reports_app,
+            "/ifta-clerk": ifta_clerk_app,
         },
     )
     return shell

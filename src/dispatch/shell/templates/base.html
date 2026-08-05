@@ -11,9 +11,11 @@
     <h1><a href="{{ url_for('dashboard') }}">Dispatch</a></h1>
     <nav class="top-nav">
       <a href="{{ url_for('dashboard') }}">Home</a>
-      <!-- /queue and /reports are Queue's and Reports' own mounted apps,
-           not shell routes -- url_for can't cross app boundaries, so
-           these are the fixed mount prefixes from app.py, plain strings. -->
+      <!-- /queue, /reports, and /ifta-clerk are Queue's, Reports', and
+           the IFTA Clerk's own mounted apps, not shell routes -- url_for
+           can't cross app boundaries, so these are the fixed mount
+           prefixes from app.py, plain strings. -->
+      <a href="/ifta-clerk/">IFTA Clerk</a>
       <a href="/queue/">Queue</a>
       <a href="/reports/">Reports</a>
       <a href="{{ url_for('pilot_page') }}">Pilot</a>

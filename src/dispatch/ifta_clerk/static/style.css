@@ -1,0 +1,74 @@
+* { box-sizing: border-box; }
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  margin: 0;
+  padding: 0 1rem 3rem;
+  font-size: 18px;
+  color: #1a1a1a;
+  background: #fafafa;
+}
+
+header h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+header a { color: inherit; text-decoration: none; }
+
+.quarter-form { display: flex; gap: 1rem; align-items: flex-end; margin: 1rem 0 1.5rem; flex-wrap: wrap; }
+.quarter-form label { display: flex; flex-direction: column; font-size: 0.9rem; color: #555; }
+.quarter-form input { font-size: 1.05rem; padding: 0.5rem; border: 1px solid #ccc; border-radius: 6px; }
+
+.btn {
+  padding: 0.75rem 1.25rem;
+  font-size: 1.05rem;
+  border: none;
+  border-radius: 8px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.btn-run { background: #1a3fb3; color: #fff; }
+
+.readiness { margin: 1rem 0 1.5rem; }
+.readiness-label {
+  display: inline-block;
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #ddd;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.result { margin: 1rem 0 1.5rem; padding: 1rem; background: #fff; border: 1px solid #ddd; border-radius: 8px; }
+.badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.85rem; font-weight: 700; margin: 0 0 0.5rem; }
+.badge-draft { background: #fff3cd; color: #7a5c00; }
+.badge-sealed { background: #d4edda; color: #1e5c2a; }
+.badge-preview { background: #e0e7ff; color: #1a3fb3; }
+.hint { color: #777; font-size: 0.95rem; }
+
+.jurisdiction-list, .exception-list, .suspect-list, .evidence-list { list-style: none; padding: 0; }
+.jurisdiction-list li, .exception-list li, .suspect-list li, .evidence-list li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #ddd;
+  font-size: 1.05rem;
+}
+
+.exception-list.category-1 li { border-left: 4px solid #b3261e; padding-left: 0.75rem; }
+.exception-list.category-2 li { border-left: 4px solid #999; padding-left: 0.75rem; }
+
+.severity-badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 5px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-right: 0.5rem;
+}
+.severity-critical .severity-badge { background: #f8d7da; color: #842029; }
+.severity-warning .severity-badge { background: #fff3cd; color: #7a5c00; }
+.severity-notice .severity-badge { background: #e2e3e5; color: #41464b; }
+
+.empty { color: #777; }
+.error { color: #b3261e; font-weight: 600; }
+
+h2 { margin-top: 2rem; }
+h3 { margin-top: 1.25rem; font-size: 1.1rem; color: #444; }
