@@ -47,7 +47,10 @@ header a { color: inherit; text-decoration: none; }
 .badge-draft { background: #fff3cd; color: #7a5c00; }
 .badge-sealed { background: #d4edda; color: #1e5c2a; }
 .badge-preview { background: #e0e7ff; color: #1a3fb3; }
+.badge-recommendation { background: #fde8cc; color: #8a4b00; }
 .hint { color: #777; font-size: 0.95rem; }
+
+.recommendation { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
 
 .jurisdiction-list, .exception-list, .suspect-list, .evidence-list { list-style: none; padding: 0; }
 .jurisdiction-list li, .exception-list li, .suspect-list li, .evidence-list li {

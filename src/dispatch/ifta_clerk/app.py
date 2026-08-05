@@ -2,18 +2,22 @@
 experience of the IFTA Clerk (IFTA_CLERK_BLUEPRINT_v1 section 7,
 approved 2026-08-04).
 
-Two deliberate write actions, added 2026-08-04 (Phase 5, "Prepare This
-Quarter" -- modified from the blueprint's original three-step design):
-`POST /prepare` and `POST /submit`, both thin wrappers around
-dispatch.ifta_clerk.prepare's real functions. Every other route is GET.
-This module (app.py) is the only place in this app that ever imports
+Three deliberate write actions: `POST /prepare` and `POST /submit`
+(2026-08-04, Phase 5), and `POST /recommend-payment` (2026-08-04, Phase
+6's first named package -- Recommended Payment Amount), all thin
+wrappers around dispatch.ifta_clerk.prepare's and .recommend's real
+functions. Every other route is GET. This module (app.py) is the only
+place in this app that ever imports
 QueueStore/EvidenceSpine/dispatch.ifta.package -- dashboard.py stays
-exactly as read-only as it always was, and prepare.py is the one other
-module allowed to write, so "can this write?" stays a small, explicit
-surface, checked by ast-parsed import tests in
-tests/ifta_clerk/test_app.py, not just this docstring's promise.
-Neither write route ever reaches attempt_seal() -- sealing a worksheet
-is unchanged, reachable only after a real Queue approval.
+exactly as read-only as it always was, and prepare.py/recommend.py are
+the only other modules allowed to write, so "can this write?" stays a
+small, explicit surface, checked by ast-parsed import tests in
+tests/ifta_clerk/test_app.py, not just this docstring's promise. No
+route ever reaches attempt_seal() -- sealing a worksheet is unchanged,
+reachable only after a real Queue approval. recommend_payment() itself
+never touches the database at all -- it's the only write route backed
+solely by a read-only connection, since generating a payment
+recommendation only ever writes a file to Archive.
 
 flask.g per-request connection lifetime, the same pattern every other
 app in this project already uses.
@@ -46,6 +50,12 @@ from dispatch.ifta_clerk.prepare import (
     submit_quarter_for_approval,
 )
 from dispatch.ifta_clerk.readonly import open_read_only
+from dispatch.ifta_clerk.recommend import (
+    WorksheetNotFoundForRecommendationError,
+    WorksheetNotSealedError,
+    existing_recommendation,
+    generate_payment_recommendation,
+)
 
 DEFAULT_FUEL_TYPE = "diesel"
 
@@ -54,6 +64,16 @@ def _current_quarter() -> str:
     today = datetime.now(timezone.utc).date()
     q = (today.month - 1) // 3 + 1
     return f"{today.year}-Q{q}"
+
+
+def _payment_recommendation_for(config: dict[str, Any], data: dict[str, Any], quarter: str):
+    """None unless the tax position is a real, sealed worksheet -- a
+    payment recommendation is meaningless for a draft or a live
+    estimate."""
+    worksheet = data["tax_position"].get("worksheet")
+    if worksheet is None or worksheet["status"] != "sealed":
+        return None
+    return existing_recommendation(config["roots"], quarter, worksheet["ifta_worksheet_id"])
 
 
 def create_app(config: dict[str, Any]) -> Flask:
@@ -90,15 +110,25 @@ def create_app(config: dict[str, Any]) -> Flask:
         try:
             data = build_dashboard(get_ro(), quarter=quarter, fuel_type=fuel_type)
         except InvalidQuarterError as exc:
-            return render_template("dashboard.html", error=str(exc), quarter=quarter, fuel_type=fuel_type, data=None, banner=None), 400
+            return render_template(
+                "dashboard.html", error=str(exc), quarter=quarter, fuel_type=fuel_type,
+                data=None, banner=None, payment_recommendation=None,
+            ), 400
 
         banner = None
         if request.args.get("prepared"):
             banner = {"kind": "prepared", "exception_count": request.args.get("exceptions", "0")}
         elif request.args.get("submitted"):
             banner = {"kind": "submitted"}
+        elif request.args.get("recommended"):
+            banner = {"kind": "recommended"}
 
-        return render_template("dashboard.html", error=None, quarter=quarter, fuel_type=fuel_type, data=data, banner=banner)
+        payment_recommendation = _payment_recommendation_for(config, data, quarter)
+
+        return render_template(
+            "dashboard.html", error=None, quarter=quarter, fuel_type=fuel_type,
+            data=data, banner=banner, payment_recommendation=payment_recommendation,
+        )
 
     @app.route("/prepare", methods=["POST"])
     def prepare():
@@ -112,6 +142,7 @@ def create_app(config: dict[str, Any]) -> Flask:
             return render_template(
                 "dashboard.html", error=f"Could not prepare this quarter: {exc}",
                 quarter=quarter, fuel_type=fuel_type, data=data, banner=None,
+                payment_recommendation=_payment_recommendation_for(config, data, quarter),
             ), 400
 
         return redirect(url_for("dashboard", quarter=quarter, fuel_type=fuel_type, prepared=1, exceptions=result["exception_count"]))
@@ -128,9 +159,27 @@ def create_app(config: dict[str, Any]) -> Flask:
             return render_template(
                 "dashboard.html", error=f"Could not submit for approval: {exc}",
                 quarter=quarter, fuel_type=fuel_type, data=data, banner=None,
+                payment_recommendation=_payment_recommendation_for(config, data, quarter),
             ), 400
 
         return redirect(url_for("dashboard", quarter=quarter, fuel_type=fuel_type, submitted=1))
+
+    @app.route("/recommend-payment", methods=["POST"])
+    def recommend_payment():
+        quarter = request.form.get("quarter") or _current_quarter()
+        fuel_type = request.form.get("fuel_type") or DEFAULT_FUEL_TYPE
+
+        try:
+            generate_payment_recommendation(get_ro(), config["roots"], quarter=quarter, fuel_type=fuel_type)
+        except (WorksheetNotFoundForRecommendationError, WorksheetNotSealedError) as exc:
+            data = build_dashboard(get_ro(), quarter=quarter, fuel_type=fuel_type)
+            return render_template(
+                "dashboard.html", error=f"Could not generate payment recommendation: {exc}",
+                quarter=quarter, fuel_type=fuel_type, data=data, banner=None,
+                payment_recommendation=_payment_recommendation_for(config, data, quarter),
+            ), 400
+
+        return redirect(url_for("dashboard", quarter=quarter, fuel_type=fuel_type, recommended=1))
 
     return app
 
