@@ -346,3 +346,35 @@ class WorksheetEngine:
         ).fetchall()
         worksheet["lines"] = [dict(line) for line in lines]
         return worksheet
+
+
+def latest_worksheet_for(conn: sqlite3.Connection, *, quarter: str, fuel_type: str) -> dict[str, Any] | None:
+    """The most recently created worksheet for this quarter/fuel_type, if
+    any -- None if none exists yet. A plain SELECT, safe against either a
+    write or a read-only connection, and against a genuinely fresh
+    database with no ifta_worksheets table at all.
+
+    get() alone can't answer "does a real worksheet already exist for
+    this quarter?" -- it requires already knowing the id. This is the
+    read a caller needs before choosing between a real worksheet's stored
+    numbers and preview()'s live estimate (IFTA_CLERK_BLUEPRINT_v1
+    section 6's rule: never show both at once for the same quarter)."""
+    if not _table_exists(conn, "ifta_worksheets"):
+        return None
+    row = conn.execute(
+        # created_at is only second-precision (_utc_now_iso); ifta_worksheet_id
+        # (a ULID) sorts lexicographically by millisecond creation time, so it's
+        # the reliable tie-breaker for two worksheets built within the same second.
+        "SELECT * FROM ifta_worksheets WHERE quarter = ? AND fuel_type = ? "
+        "ORDER BY created_at DESC, ifta_worksheet_id DESC LIMIT 1",
+        (quarter, fuel_type),
+    ).fetchone()
+    if row is None:
+        return None
+    worksheet = dict(row)
+    lines = conn.execute(
+        "SELECT * FROM ifta_worksheet_lines WHERE ifta_worksheet_id = ? ORDER BY jurisdiction",
+        (worksheet["ifta_worksheet_id"],),
+    ).fetchall()
+    worksheet["lines"] = [dict(line) for line in lines]
+    return worksheet

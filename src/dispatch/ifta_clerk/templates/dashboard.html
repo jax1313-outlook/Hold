@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}IFTA Clerk — {{ quarter }}{% endblock %}
+{% block content %}
+
+<form action="{{ url_for('dashboard') }}" method="get" class="quarter-form">
+  <label>Quarter
+    <input type="text" name="quarter" value="{{ quarter }}" placeholder="2026-Q3">
+  </label>
+  <label>Fuel Type
+    <input type="text" name="fuel_type" value="{{ fuel_type }}" placeholder="diesel">
+  </label>
+  <button class="btn btn-run" type="submit">View</button>
+</form>
+
+{% if error %}
+<p class="error">{{ error }}</p>
+{% else %}
+
+<section class="readiness">
+  <span class="readiness-label">{{ data.readiness_status }}</span>
+</section>
+
+<h2>Estimated tax position</h2>
+{% if data.tax_position.source == "worksheet" %}
+<div class="result">
+  <p class="badge badge-{{ data.tax_position.worksheet.status }}">{{ data.tax_position.worksheet.status|upper }}</p>
+  <p>Total net tax: <strong>{{ "%.2f"|format(data.tax_position.worksheet.total_net_tax) }}</strong></p>
+  <p>Fleet MPG: {{ "%.2f"|format(data.tax_position.worksheet.fleet_mpg) }} &middot; Rate table: {{ data.tax_position.worksheet.rate_table_version }}</p>
+</div>
+{% elif data.tax_position.estimate %}
+<div class="result">
+  <p class="badge badge-preview">CURRENT ESTIMATE</p>
+  <p>Total net tax (estimated): <strong>{{ "%.2f"|format(data.tax_position.estimate.total_net_tax) }}</strong></p>
+  <p>Fleet MPG: {{ "%.2f"|format(data.tax_position.estimate.fleet_mpg) }} &middot; Rate table: {{ data.tax_position.estimate.rate_table_version }}</p>
+  <p class="hint">No worksheet has been built for this quarter yet — this is a live, non-persisting estimate, not a filed worksheet.</p>
+</div>
+{% else %}
+<p class="empty">{{ data.tax_position.error or "no estimate available yet" }}</p>
+{% endif %}
+
+<h2>Miles by jurisdiction</h2>
+{% if data.miles_by_jurisdiction %}
+<ul class="jurisdiction-list">
+  {% for jurisdiction, miles in data.miles_by_jurisdiction.items()|sort %}
+  <li>{{ jurisdiction }}: {{ "%.1f"|format(miles) }} miles</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">No mileage recorded yet this quarter.</p>
+{% endif %}
+
+<h2>Fuel by jurisdiction</h2>
+{% if data.fuel_by_jurisdiction %}
+<ul class="jurisdiction-list">
+  {% for jurisdiction, gallons in data.fuel_by_jurisdiction.items()|sort %}
+  <li>{{ jurisdiction }}: {{ "%.1f"|format(gallons) }} gallons</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">No fuel recorded yet this quarter.</p>
+{% endif %}
+
+<h2>Exceptions and missing data</h2>
+
+<h3>Confirmed (from a real, built worksheet)</h3>
+{% if data.confirmed_exceptions %}
+<ul class="exception-list category-1">
+  {% for exc in data.confirmed_exceptions %}
+  <li>{{ exc.exception_type }}: {{ exc.detail }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">None{% if data.tax_position.source != "worksheet" %} — no worksheet built for this quarter yet{% endif %}.</p>
+{% endif %}
+
+<h3>Live indicators (would flag if built today — not queued, not confirmed)</h3>
+{% if data.live_indicator_findings %}
+<ul class="exception-list category-2">
+  {% for finding in data.live_indicator_findings %}
+  <li class="severity-{{ finding.severity }}"><span class="severity-badge">{{ finding.severity }}</span> {{ finding.exception_type }}: {{ finding.detail }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">None.</p>
+{% endif %}
+
+<h2>Suspect entries (below {{ "%.2f"|format(data.confidence_threshold) }} confidence)</h2>
+{% if data.suspect_entries %}
+<ul class="suspect-list">
+  {% for entry in data.suspect_entries %}
+  <li>{{ entry.record_type }} &middot; {{ entry.vendor_name }} &middot; {{ entry.purchase_date }} &middot; confidence {{ "%.2f"|format(entry.extraction_confidence) }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">None.</p>
+{% endif %}
+
+<h2>Evidence links</h2>
+{% if data.evidence_links %}
+<ul class="evidence-list">
+  {% for link in data.evidence_links %}
+  <li>{{ link.purchase_date }} &middot; {{ link.document_type }} &middot; {{ link.archive_path }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">None.</p>
+{% endif %}
+
+{% endif %}
+{% endblock %}

@@ -12,6 +12,7 @@ from dispatch.ifta.worksheet import (
     InsufficientDataError,
     InvalidQuarterError,
     MissingRateError,
+    latest_worksheet_for,
     quarter_bounds,
 )
 from tests.lane_c.conftest import insert_fuel_record, insert_mileage_record
@@ -133,3 +134,53 @@ def test_read_only_connection_rejects_any_write(ifta_engine):
             "INSERT INTO queue_items (queue_item_id, type, source_worker, created_at, "
             "priority, subject, status) VALUES ('x', 'exception', 'ifta', 'now', 'today', 'x', 'open')"
         )
+
+
+def test_latest_worksheet_for_returns_none_when_none_exists(ifta_engine, db_conn):
+    assert latest_worksheet_for(db_conn, quarter="2026-Q2", fuel_type="diesel") is None
+
+
+def test_latest_worksheet_for_returns_none_on_a_genuinely_fresh_database(sandbox_config):
+    from dispatch.common.db import bootstrap
+
+    conn = bootstrap(sandbox_config["database"])
+    try:
+        assert latest_worksheet_for(conn, quarter="2026-Q2", fuel_type="diesel") is None
+    finally:
+        conn.close()
+
+
+def test_latest_worksheet_for_finds_a_real_built_worksheet(ifta_engine, db_conn):
+    _seed_two_jurisdiction_quarter(db_conn)
+    built = ifta_engine.build(quarter="2026-Q2", fuel_type="diesel", rate_table_version="fixture-v1")
+
+    found = latest_worksheet_for(db_conn, quarter="2026-Q2", fuel_type="diesel")
+
+    assert found is not None
+    assert found["ifta_worksheet_id"] == built["ifta_worksheet_id"]
+    assert found["total_net_tax"] == built["total_net_tax"]
+    assert len(found["lines"]) == len(built["lines"])
+
+
+def test_latest_worksheet_for_ignores_a_different_quarter_or_fuel_type(ifta_engine, db_conn):
+    _seed_two_jurisdiction_quarter(db_conn)
+    ifta_engine.build(quarter="2026-Q2", fuel_type="diesel", rate_table_version="fixture-v1")
+
+    assert latest_worksheet_for(db_conn, quarter="2026-Q3", fuel_type="diesel") is None
+    assert latest_worksheet_for(db_conn, quarter="2026-Q2", fuel_type="gasoline") is None
+
+
+def test_latest_worksheet_for_returns_the_most_recently_created_one(ifta_engine, db_conn):
+    _seed_two_jurisdiction_quarter(db_conn)
+    ifta_engine.build(quarter="2026-Q2", fuel_type="diesel", rate_table_version="fixture-v1")
+
+    # A second rate version, so a second build for the same quarter is
+    # possible (real IFTA rate corrections are new-version rows, not
+    # edits -- same pattern test_rate_version_mismatch_fires uses).
+    rates.insert_rate(db_conn, jurisdiction="TX", quarter="2026-Q2", fuel_type="diesel", rate=0.25, source_version="fixture-v2")
+    rates.insert_rate(db_conn, jurisdiction="OK", quarter="2026-Q2", fuel_type="diesel", rate=0.19, source_version="fixture-v2")
+    second_built = ifta_engine.build(quarter="2026-Q2", fuel_type="diesel", rate_table_version="fixture-v2")
+
+    found = latest_worksheet_for(db_conn, quarter="2026-Q2", fuel_type="diesel")
+    assert found["ifta_worksheet_id"] == second_built["ifta_worksheet_id"]
+    assert found["rate_table_version"] == "fixture-v2"
