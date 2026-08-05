@@ -171,9 +171,9 @@ def test_ifta_clerk_source_never_issues_a_raw_sql_write():
             assert snippet not in text, f"{path} contains a raw SQL write: {snippet!r}"
 
 
-def test_ifta_clerk_app_has_exactly_two_post_routes():
-    """/prepare and /submit are the app's only write actions, added
-    2026-08-04 -- everything else, including / itself, stays GET-only."""
+def test_ifta_clerk_app_has_exactly_three_post_routes():
+    """/prepare, /submit, and /recommend-payment are the app's only write
+    actions -- everything else, including / itself, stays GET-only."""
     from dispatch.ifta_clerk.app import create_app
 
     app = create_app({"database": ":memory:", "roots": {"operations": ".", "library": ".", "archive": "."}})
@@ -181,7 +181,7 @@ def test_ifta_clerk_app_has_exactly_two_post_routes():
         rule.endpoint for rule in app.url_map.iter_rules()
         if rule.endpoint != "static" and "POST" in rule.methods
     }
-    assert post_endpoints == {"prepare", "submit"}, f"unexpected POST-capable routes: {post_endpoints}"
+    assert post_endpoints == {"prepare", "submit", "recommend_payment"}, f"unexpected POST-capable routes: {post_endpoints}"
 
     dashboard_rule = next(r for r in app.url_map.iter_rules() if r.endpoint == "dashboard")
     assert "POST" not in dashboard_rule.methods
@@ -250,3 +250,99 @@ def test_dashboard_module_still_never_imports_queue_or_evidence_spine():
     assert "QueueStore" not in imported
     assert "EvidenceSpine" not in imported
     assert "dispatch.ifta.package" not in imported
+
+
+# --- Recommended Payment Amount, real end to end -------------------------
+
+
+def _seal_a_real_worksheet_via_app(client, db_conn, sandbox_config):
+    """Full real pipeline through the actual routes/functions this app
+    already has, plus the one step outside its scope (approving the
+    queue item, which only Lane B's own Queue does) and sealing (only
+    dispatch.ifta.package.attempt_seal does)."""
+    from dispatch.evidence.interface import EvidenceSpine
+    from dispatch.ifta.package import attempt_seal
+    from dispatch.ifta.readonly import open_read_only as open_ifta_ro
+    from dispatch.ifta.worksheet import latest_worksheet_for
+    from dispatch.queue.store import QueueStore
+    from dispatch.receipt.db import install_schema as install_receipt_schema
+
+    install_receipt_schema(db_conn)
+    insert_mileage_record(db_conn, unit_number="T-104", jurisdiction="TX", period_start="2026-04-01", period_end="2026-06-30", miles=1200.0)
+    insert_fuel_record(db_conn, jurisdiction="TX", purchase_date="2026-04-15", gallons_normalized=80.0)
+    rates.insert_rate(db_conn, jurisdiction="TX", quarter="2026-Q2", fuel_type="diesel", rate=0.20, source_version="fixture-v1")
+    db_conn.commit()
+
+    client.post("/prepare", data={"quarter": "2026-Q2", "fuel_type": "diesel"})
+    client.post("/submit", data={"quarter": "2026-Q2", "fuel_type": "diesel"})
+
+    worksheet = latest_worksheet_for(db_conn, quarter="2026-Q2", fuel_type="diesel")
+    queue = QueueStore(db_conn)
+    queue.approve(worksheet["queue_item_id"], decided_by="human:mike", decision_note="test approval")
+    ro_conn = open_ifta_ro(sandbox_config["database"])
+    try:
+        sealed = attempt_seal(db_conn, queue, sandbox_config["roots"], worksheet["ifta_worksheet_id"])
+    finally:
+        ro_conn.close()
+    return sealed
+
+
+def test_recommend_payment_route_after_a_real_seal(client, db_conn, sandbox_config):
+    sealed = _seal_a_real_worksheet_via_app(client, db_conn, sandbox_config)
+
+    resp = client.post("/recommend-payment", data={"quarter": "2026-Q2", "fuel_type": "diesel"})
+    assert resp.status_code == 302
+    assert "recommended=1" in resp.headers["Location"]
+
+    follow = client.get(resp.headers["Location"])
+    body = follow.data.decode()
+    assert "Payment recommendation generated" in body
+    assert "RECOMMENDATION — NOT A PAYMENT" in body
+
+    from pathlib import Path
+
+    expected_path = Path(sandbox_config["roots"]["archive"]) / "IFTA" / "2026-Q2" / f"{sealed['ifta_worksheet_id']}_payment_recommendation.json"
+    assert expected_path.is_file()
+
+
+def test_recommend_payment_route_refuses_before_sealing(client, db_conn, sandbox_config):
+    from dispatch.receipt.db import install_schema as install_receipt_schema
+
+    install_receipt_schema(db_conn)
+    insert_mileage_record(db_conn, unit_number="T-104", jurisdiction="TX", period_start="2026-04-01", period_end="2026-06-30", miles=1200.0)
+    insert_fuel_record(db_conn, jurisdiction="TX", purchase_date="2026-04-15", gallons_normalized=80.0)
+    rates.insert_rate(db_conn, jurisdiction="TX", quarter="2026-Q2", fuel_type="diesel", rate=0.20, source_version="fixture-v1")
+    db_conn.commit()
+
+    client.post("/prepare", data={"quarter": "2026-Q2", "fuel_type": "diesel"})  # draft, never sealed
+
+    resp = client.post("/recommend-payment", data={"quarter": "2026-Q2", "fuel_type": "diesel"})
+    assert resp.status_code == 400
+    assert "Could not generate payment recommendation" in resp.data.decode()
+
+
+def test_recommend_payment_route_is_idempotent_on_repeat_clicks(client, db_conn, sandbox_config):
+    _seal_a_real_worksheet_via_app(client, db_conn, sandbox_config)
+
+    first = client.post("/recommend-payment", data={"quarter": "2026-Q2", "fuel_type": "diesel"})
+    second = client.post("/recommend-payment", data={"quarter": "2026-Q2", "fuel_type": "diesel"})
+    assert first.status_code == 302
+    assert second.status_code == 302  # never a raw error on a repeat click
+
+    import os
+
+    from pathlib import Path
+
+    directory = Path(sandbox_config["roots"]["archive"]) / "IFTA" / "2026-Q2"
+    recommendation_files = [f for f in os.listdir(directory) if f.endswith("_payment_recommendation.json")]
+    assert len(recommendation_files) == 1
+
+
+def test_dashboard_shows_the_recommend_button_only_once_sealed(client, db_conn, sandbox_config):
+    _seal_a_real_worksheet_via_app(client, db_conn, sandbox_config)
+
+    resp = client.get("/?quarter=2026-Q2&fuel_type=diesel")
+    body = resp.data.decode()
+    assert "SEALED" in body
+    assert "Generate Payment Recommendation" in body
+    assert "RECOMMENDATION — NOT A PAYMENT" not in body  # not generated yet

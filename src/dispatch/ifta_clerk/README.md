@@ -97,32 +97,61 @@ exactly where it already was, reachable only after a real Queue
 approval, unchanged by this module. Checked by `ast`-parsed import tests
 across the whole package, not just this docstring's promise.
 
+## Recommended Payment Amount (`recommend.py`)
+
+Added 2026-08-04 (Phase 6's first named package —
+`IFTA_CLERK_BLUEPRINT_v1.md` section 13: "a prepared DocuSign package, a
+drafted accounting notification, a recommended payment amount —
+proposals, never live sends"). The other two remain named-only,
+undesigned — no DocuSign integration and no accounting/QuickBooks
+integration exist anywhere in this codebase to design against.
+
+Applies only to a real, **sealed** worksheet, matching section 2's
+"after sealing" placement. `POST /recommend-payment` →
+`generate_payment_recommendation()`: wraps the sealed worksheet's
+already-approved `total_net_tax` in a recommendation label
+(`remit`/`credit`/`no_payment_due`) and writes exactly one JSON file to
+`ARCHIVE\IFTA\<quarter>\<id>_payment_recommendation.json` — the same
+root `attempt_seal()` already writes its own sealed bundle to. No new
+number is invented, no database write happens at all (the function's
+only connection parameter is `read_only_conn`), and no payment API, bank
+integration, or accounting write exists anywhere in this codebase for it
+to reach — generating the recommendation is the entire action.
+Idempotent: a worksheet that already has one returns it rather than
+regenerating, since the sealed numbers it's built from can never change.
+
 ## Doctrine, restated as commitments for this app specifically
 
-Updated 2026-08-04 for `prepare.py`'s two write actions — the earlier
-"nothing here writes anywhere" version of this section is no longer
-literally true and is corrected below, not left stale:
+Updated 2026-08-04, first for `prepare.py`'s two write actions and then
+for `recommend.py`'s — each update corrects the section rather than
+leaving an earlier, now-inaccurate version in place:
 
 - **Evidence First** — every number is read exactly as Lane C's router
-  already computed it; nothing here re-derives or second-guesses it, and
+  already computed it; nothing here re-derives or second-guesses it.
   `prepare_quarter()` calls the same real `build()`/`run_all_detectors()`
-  every prior IFTA build already used — no second computation path.
+  every prior IFTA build already used, and `generate_payment_recommendation()`
+  wraps the sealed worksheet's own already-approved `total_net_tax` —
+  neither computes a second, competing number.
 - **Read-only Workspace** — no new table, no duplicate store, no direct
   `INSERT`/`UPDATE`/`DELETE` anywhere in this package's own source
   (checked by source scan in tests) — `dashboard.py` itself remains
-  fully read-only; the two write actions call existing, already-governed
-  Lane C/Lane B functions instead of writing anything new.
-- **Human Authority** — Preparation and Submission are two distinct,
-  deliberate human actions, never bundled or automatic; `attempt_seal()`
-  is unreachable from this app entirely, checked structurally
-  (`ast`-parsed imports, not just this docstring's promise) — sealing a
-  worksheet still requires the same real Queue approval it always did.
+  fully read-only; the write actions call existing, already-governed
+  Lane C/Lane B functions, or write a single file to Archive, never a
+  new database write path.
+- **Human Authority** — Preparation, Submission, and generating a
+  payment recommendation are each a distinct, deliberate human action,
+  never bundled or automatic; `attempt_seal()` is unreachable from this
+  app entirely, checked structurally (`ast`-parsed imports, not just
+  this docstring's promise) — sealing a worksheet still requires the
+  same real Queue approval it always did.
 - **Recommendation Packages Only / no QuickBooks / no DocuSign / no
-  Filing** — still true: `prepare_quarter()`/`submit_quarter_for_approval()`
-  only ever write to this system's own governed tables (`ifta_worksheets`,
-  `ifta_exceptions`, `queue_items`); no external system integration
-  exists anywhere in this app.
+  Filing** — the recommendation *is* the deliverable now, not just a
+  future placeholder: `generate_payment_recommendation()` writes a
+  proposal to Archive and stops there — no payment API, bank
+  integration, DocuSign, or QuickBooks write exists anywhere in this
+  app for it to call.
 
-See `docs/ifta-clerk/REVIEW_DASHBOARD_NOTES_v1.md` and
-`docs/ifta-clerk/PREPARE_THIS_QUARTER_NOTES_v1.md` for the full build
+See `docs/ifta-clerk/REVIEW_DASHBOARD_NOTES_v1.md`,
+`docs/ifta-clerk/PREPARE_THIS_QUARTER_NOTES_v1.md`, and
+`docs/ifta-clerk/PAYMENT_RECOMMENDATION_NOTES_v1.md` for the full build
 record, findings, and test coverage.

@@ -391,6 +391,42 @@ structurally separate from each other and from `attempt_seal()`
 (unreachable from this app entirely), each proven by `ast`-parsed
 imports and function-source scans, not just asserted.
 
+### Recommended Payment Amount merge approval — APPROVED, 2026-08-05
+
+Mike directed Phase 6 (Recommendation Package generation) as item 2 of
+a five-item work list. Which of the three named package types to build
+first (a prepared DocuSign package, a drafted accounting notification,
+a recommended payment amount) was left unanswered when asked; the build
+session proceeded with its own stated recommendation — payment amount
+first, since it has zero external-system dependency, unlike the other
+two which would need a real DocuSign or accounting-system schema this
+codebase has never integrated with — flagged explicitly as an
+assumption. Mike then approved the presented design directly ("yes
+proceed"): applies only to sealed worksheets; computation wraps the
+sealed `total_net_tax` in a remit/credit/no_payment_due label; one JSON
+file to Archive, no new database table; no payment API, bank
+integration, or accounting write anywhere in this codebase.
+
+Per Hard Approval Gate #7, Mike reviewed the walkthrough
+(`docs/ifta-clerk/PAYMENT_RECOMMENDATION_WALKTHROUGH_REPORT_v1.md` —
+the failure path covered first with no worksheet at all, real
+fuel/mileage/rate data spanning two jurisdictions through real entry
+points, a full real prepare/submit/approve/seal pipeline producing a
+real credit position hand-verified against the generated file, a
+repeated request confirming idempotency with an unchanged
+`generated_at`, and the real, unmodified `/queue/` app independently
+confirming the same approved item) and, when asked whether he was
+satisfied and wanted it merged, replied "yes, go ahead and merge" — a
+direct, affirmative instruction responding to that specific question,
+not silence or a timeout.
+
+**Unblocked:** `build/ifta-clerk-payment-recommendation` merges into
+`integration` — `dispatch.ifta_clerk.recommend`'s one write action,
+`generate_payment_recommendation()`, structurally incapable of any
+database write (its only connection parameter is `read_only_conn`) and
+proven, by `ast`-parsed imports, to import nothing with send, approval,
+or sealing capability.
+
 ## Open
 
 (none — all four originally-held items, the Lane A, Lane B, Lane C, and
@@ -398,6 +434,6 @@ Lane D merge approvals, the Lane D deferred fidelity gate, the Evidence
 Record v1.1 amendment, the Dispatch Shell merge approval, the
 WorksheetEngine Preview Mode merge approval, the Category 2 Live
 Indicators merge approval, the IFTA Clerk Blueprint reconciliation merge
-approval, the Review Dashboard merge approval, and the Prepare This
-Quarter / Submit for Approval merge approval above, are resolved as of
-2026-08-04)
+approval, the Review Dashboard merge approval, the Prepare This Quarter
+/ Submit for Approval merge approval, and the Recommended Payment Amount
+merge approval above, are resolved as of 2026-08-05)
