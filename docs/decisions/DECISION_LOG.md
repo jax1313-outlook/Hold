@@ -357,6 +357,40 @@ responding to that specific question, not silence or a timeout.
 IFTA, mounted at `/ifta-clerk` and linked first from the Shell's home
 page.
 
+### Prepare This Quarter / Submit for Approval merge approval — APPROVED, 2026-08-04
+
+Mike directed Phase 5 ("Prepare This Quarter"), modifying the
+blueprint's original three-step design ("`build()` +
+`run_all_detectors()` + `submit_for_approval()` in sequence"): Prepare
+should build the worksheet, run detectors, and assemble the review
+package, but must not automatically submit for approval — submission
+stays a separate human action, to maintain a clear separation between
+Preparation / Review / Approval Routing. Design and this modification
+were confirmed before any code, per this project's standing
+brainstorming requirement. One design question resolved directly during
+that pass: "assemble review package" required no new artifact — the
+already-built Review Dashboard already assembles exactly this the
+moment a real worksheet exists.
+
+Per Hard Approval Gate #7, Mike reviewed the walkthrough
+(`docs/ifta-clerk/PREPARE_THIS_QUARTER_WALKTHROUGH_REPORT_v1.md` — the
+failure path covered first with no data at all, real fuel/mileage/rate
+data through real entry points with `fleet_mpg` verified by hand, no
+auto-submit confirmed via raw `sqlite3` after a real prepare, a real
+approval Queue item created on a separate real submit, a double-submit
+cleanly refused with the count staying at one, and the real,
+unmodified `/queue/` app independently confirming the created item) and,
+when asked whether he was satisfied and wanted it merged, replied "yes,
+go ahead and merge" — a direct, affirmative instruction responding to
+that specific question, not silence or a timeout.
+
+**Unblocked:** `build/ifta-clerk-prepare-quarter` merges into
+`integration` — `dispatch.ifta_clerk.prepare`'s two write actions,
+`prepare_quarter()` and `submit_quarter_for_approval()`, kept
+structurally separate from each other and from `attempt_seal()`
+(unreachable from this app entirely), each proven by `ast`-parsed
+imports and function-source scans, not just asserted.
+
 ## Open
 
 (none — all four originally-held items, the Lane A, Lane B, Lane C, and
@@ -364,5 +398,6 @@ Lane D merge approvals, the Lane D deferred fidelity gate, the Evidence
 Record v1.1 amendment, the Dispatch Shell merge approval, the
 WorksheetEngine Preview Mode merge approval, the Category 2 Live
 Indicators merge approval, the IFTA Clerk Blueprint reconciliation merge
-approval, and the Review Dashboard merge approval above, are resolved as
-of 2026-08-04)
+approval, the Review Dashboard merge approval, and the Prepare This
+Quarter / Submit for Approval merge approval above, are resolved as of
+2026-08-04)
