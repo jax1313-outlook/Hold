@@ -142,3 +142,67 @@ Per launch package §8 and the Librarian/Receipt/IFTA constitutions'
 
 `build/receipt-ifta` merged into `integration` following Mike's
 walkthrough sign-off (above).
+
+## Session 3 (2026-08-05) — vision extraction exercised live for real, one bug found and fixed
+
+Branch: `build/ocr-fenced-json-fix`. Item 4 of Mike's 5-item work list
+("OCR validation with real receipts") had been blocked all session —
+no `ANTHROPIC_API_KEY` existed in any build environment used so far.
+Mike supplied a real, disposable testing key directly in-session. Per
+standing practice, the key was never written to any file (not the
+sandbox config, not `.env`, nothing committed) — used only as a
+transient environment variable for the lifetime of each live call, then
+discarded. `anthropic` and `Pillow` (the latter dev-only, to synthesize
+a test receipt image — no real scanned receipt existed in this build
+environment) were installed locally for this session; `anthropic` is
+now a real `requirements.txt` dependency (see below), `Pillow` is not.
+
+### The live test that found the bug
+
+A synthetic pump-receipt image (vendor, date, gallons, price, unit
+number, driver, odometer, payment card, receipt number — every field a
+real receipt would have) dropped into a throwaway sandbox's
+`Intake/Drop`, run through the real `IntakePipeline.process_drop()`
+with `ClaudeVisionExtractor` wired to a real API call. Result: the
+model read every field correctly (`extraction_confidence: 0.97`,
+independently confirmed by hand against the image), but the document
+was quarantined anyway. Root cause: `_parse_response_text()` in
+`src/dispatch/receipt/extraction/vision.py` called `json.loads(text)`
+directly, and real Claude output wraps the JSON object in a ` ```json
+... ``` ` markdown fence despite the prompt saying "no other text" —
+`json.loads` threw immediately on the fence characters. This wasn't a
+one-off flake; it would quarantine **every** real scanned receipt,
+unconditionally. Evidence was still correctly registered, hashed, and
+archived before the parse ever ran, and the quarantined file was
+preserved intact in `Intake/Quarantine` — nothing was lost, but the
+vision path itself was completely unusable until this fix.
+
+### The fix
+
+Added `_strip_markdown_fence()`: strips one leading/trailing ` ``` `
+(with or without a `json` language tag) before `json.loads`, nothing
+more — output that still isn't valid JSON after stripping still raises
+`VisionExtractionUnavailable` exactly as before, so a genuinely broken
+response still degrades to quarantine rather than being coerced into
+parsing something it shouldn't. 5 new tests in `tests/lane_c/test_vision.py`,
+including the exact fenced-JSON shape returned by the real live call,
+reproduced verbatim as a regression fixture. Full suite: 457 passed (was
+452).
+
+### Re-verified live, after the fix
+
+The identical receipt image, run through the identical pipeline again:
+routed cleanly to a real `FuelRecord`/`ExpenseRecord`, no quarantine.
+Every extracted field checked by hand against the source image and the
+database row: vendor, TX jurisdiction (correctly derived from the
+address), diesel, 112.4 gallons, $3.899/gal, $438.24 total, unit T-104,
+driver, odometer, card last-4, receipt number, `extraction_confidence
+0.97`, `review_status: auto` — all correct.
+
+### `requirements.txt`
+
+`anthropic>=0.40` is now uncommented — the comment's own stated
+condition ("uncomment when Mike supplies a real API key and this
+lane's extraction is actually exercised live") is now true. No
+automated test in the suite makes a real API call; that stays a
+live, human-run check by design, not something CI depends on.

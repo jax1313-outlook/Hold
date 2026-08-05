@@ -5,8 +5,11 @@ pytest>=8.0       # dev/test tooling only
 flask>=3.0        # Lane B's queue UI (and, later, Lane D's Reports UI)
 
 # Lane C's vision extractor (src/dispatch/receipt/extraction/vision.py)
-# lazily imports anthropic so its absence never breaks anything else in
-# this repository -- no automated test in this build calls it live (no
-# credentials exist in this environment). Uncomment when Mike supplies a
-# real API key and this lane's extraction is actually exercised live:
-# anthropic>=0.40
+# still lazily imports anthropic so a missing key/package degrades to
+# VisionExtractionUnavailable rather than an ImportError. Uncommented
+# 2026-08-05: Mike supplied a real API key and this lane's extraction
+# was exercised live against a real receipt image (see
+# docs/lanes/C/NOTES.md, Session 3). No automated test in this build
+# calls the real API -- that stays a live, human-run check, not
+# something the deterministic suite depends on.
+anthropic>=0.40
